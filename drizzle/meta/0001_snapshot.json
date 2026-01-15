@@ -1,0 +1,300 @@
+{
+  "version": "5",
+  "dialect": "mysql",
+  "id": "f6f71edd-a2dc-4461-a531-445a831b2ae2",
+  "prevId": "4c54ba74-4731-4058-89d6-de0c1cafb71c",
+  "tables": {
+    "animal_profiles": {
+      "name": "animal_profiles",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "weight_kg": {
+          "name": "weight_kg",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "vem_target": {
+          "name": "vem_target",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "dve_target_grams": {
+          "name": "dve_target_grams",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "max_bds_kg": {
+          "name": "max_bds_kg",
+          "type": "decimal(5,2)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(now())"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "animal_profiles_id": {
+          "name": "animal_profiles_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {
+        "animal_profiles_name_unique": {
+          "name": "animal_profiles_name_unique",
+          "columns": [
+            "name"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
+    "feeds": {
+      "name": "feeds",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "display_name": {
+          "name": "display_name",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "basis": {
+          "name": "basis",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "vem_per_unit": {
+          "name": "vem_per_unit",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "dve_per_unit": {
+          "name": "dve_per_unit",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "oeb_per_unit": {
+          "name": "oeb_per_unit",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "ca_per_unit": {
+          "name": "ca_per_unit",
+          "type": "decimal(5,2)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "p_per_unit": {
+          "name": "p_per_unit",
+          "type": "decimal(5,2)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "default_ds_percent": {
+          "name": "default_ds_percent",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(now())"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "feeds_id": {
+          "name": "feeds_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {
+        "feeds_name_unique": {
+          "name": "feeds_name_unique",
+          "columns": [
+            "name"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
+    "users": {
+      "name": "users",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "openId": {
+          "name": "openId",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "email": {
+          "name": "email",
+          "type": "varchar(320)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "loginMethod": {
+          "name": "loginMethod",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "role": {
+          "name": "role",
+          "type": "enum('user','admin')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'user'"
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(now())"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "onUpdate": true,
+          "default": "(now())"
+        },
+        "lastSignedIn": {
+          "name": "lastSignedIn",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(now())"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "users_id": {
+          "name": "users_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {
+        "users_openId_unique": {
+          "name": "users_openId_unique",
+          "columns": [
+            "openId"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    }
+  },
+  "views": {},
+  "_meta": {
+    "schemas": {},
+    "tables": {},
+    "columns": {}
+  },
+  "internal": {
+    "tables": {},
+    "indexes": {}
+  }
+}

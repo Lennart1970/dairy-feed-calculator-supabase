@@ -1,0 +1,1 @@
+ALTER TABLE `feeds` ADD `sw_per_kg_ds` decimal(4,2) DEFAULT '0.00' NOT NULL;

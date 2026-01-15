@@ -1,0 +1,41 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
+dist/
+build/
+
+# Environment files
+.env
+.env.local
+.env.production
+.env.supabase
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+/tmp/
+
+# Screenshots and temp files
+screenshots/
+page_texts/
+console_outputs/
+.mcp/
+
+# Uploads
+upload/
+Downloads/
+
+# Cache
+.cache/
+.npm/
+.pnpm/
+.yarn/

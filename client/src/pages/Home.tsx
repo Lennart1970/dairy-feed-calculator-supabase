@@ -450,8 +450,8 @@ export default function Home() {
           currentPage={currentPage}
         />
 
-        {/* Roughage Summary Table - Show on pages 4+ only (Expert Rapport and MPR Validatie) */}
-        {(currentPage === 4 || currentPage === 5) && hasRoughageData && (
+        {/* Roughage Summary Table - Show only on page 5 (MPR Validatie) */}
+        {currentPage === 5 && hasRoughageData && (
           <div className="mb-6">
             <RoughageSummaryTable 
               feeds={roughageSummaryData} 

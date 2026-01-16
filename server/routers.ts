@@ -2,7 +2,7 @@ import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
-import { getAllAnimalProfiles, getAnimalProfileById, getAllFeeds, getFeedByName } from "./db";
+import { getAllAnimalProfiles, getAnimalProfileById, getAllFeeds, getFeedByName, getDefaultRationsForProfile, getActiveFeeds, getFeedsByCategory } from "./db";
 import { uploadPdfForProcessing, parseLabReportPdf } from "./pdfParser";
 import { z } from "zod";
 
@@ -77,11 +77,64 @@ export const appRouter = router({
         caPerUnit: typeof f.ca_per_unit === 'number' ? f.ca_per_unit : parseFloat(String(f.ca_per_unit)) || 0,
         pPerUnit: typeof f.p_per_unit === 'number' ? f.p_per_unit : parseFloat(String(f.p_per_unit)) || 0,
         defaultDsPercent: f.default_ds_percent,
-        swPerKgDs: f.sw_per_kg_ds,
-        vwPerKgDs: f.vw_per_kg_ds,
+        swPerKgDs: typeof f.sw_per_kg_ds === 'number' ? f.sw_per_kg_ds : parseFloat(String(f.sw_per_kg_ds)) || 0,
+        vwPerKgDs: typeof f.vw_per_kg_ds === 'number' ? f.vw_per_kg_ds : parseFloat(String(f.vw_per_kg_ds)) || 0,
+        category: f.category,
+        source: f.source,
+        pricePerTon: f.price_per_ton ? parseFloat(String(f.price_per_ton)) : null,
+        isActive: f.is_active,
+        sortOrder: f.sort_order,
         createdAt: f.created_at,
       }));
     }),
+    listActive: publicProcedure.query(async () => {
+      const feedList = await getActiveFeeds();
+      return feedList.map(f => ({
+        id: f.id,
+        name: f.name,
+        displayName: f.display_name,
+        basis: f.basis,
+        vemPerUnit: f.vem_per_unit,
+        dvePerUnit: f.dve_per_unit,
+        oebPerUnit: f.oeb_per_unit,
+        caPerUnit: typeof f.ca_per_unit === 'number' ? f.ca_per_unit : parseFloat(String(f.ca_per_unit)) || 0,
+        pPerUnit: typeof f.p_per_unit === 'number' ? f.p_per_unit : parseFloat(String(f.p_per_unit)) || 0,
+        defaultDsPercent: f.default_ds_percent,
+        swPerKgDs: typeof f.sw_per_kg_ds === 'number' ? f.sw_per_kg_ds : parseFloat(String(f.sw_per_kg_ds)) || 0,
+        vwPerKgDs: typeof f.vw_per_kg_ds === 'number' ? f.vw_per_kg_ds : parseFloat(String(f.vw_per_kg_ds)) || 0,
+        category: f.category,
+        source: f.source,
+        pricePerTon: f.price_per_ton ? parseFloat(String(f.price_per_ton)) : null,
+        isActive: f.is_active,
+        sortOrder: f.sort_order,
+        createdAt: f.created_at,
+      }));
+    }),
+    listByCategory: publicProcedure
+      .input(z.object({ category: z.string() }))
+      .query(async ({ input }) => {
+        const feedList = await getFeedsByCategory(input.category);
+        return feedList.map(f => ({
+          id: f.id,
+          name: f.name,
+          displayName: f.display_name,
+          basis: f.basis,
+          vemPerUnit: f.vem_per_unit,
+          dvePerUnit: f.dve_per_unit,
+          oebPerUnit: f.oeb_per_unit,
+          caPerUnit: typeof f.ca_per_unit === 'number' ? f.ca_per_unit : parseFloat(String(f.ca_per_unit)) || 0,
+          pPerUnit: typeof f.p_per_unit === 'number' ? f.p_per_unit : parseFloat(String(f.p_per_unit)) || 0,
+          defaultDsPercent: f.default_ds_percent,
+          swPerKgDs: typeof f.sw_per_kg_ds === 'number' ? f.sw_per_kg_ds : parseFloat(String(f.sw_per_kg_ds)) || 0,
+          vwPerKgDs: typeof f.vw_per_kg_ds === 'number' ? f.vw_per_kg_ds : parseFloat(String(f.vw_per_kg_ds)) || 0,
+          category: f.category,
+          source: f.source,
+          pricePerTon: f.price_per_ton ? parseFloat(String(f.price_per_ton)) : null,
+          isActive: f.is_active,
+          sortOrder: f.sort_order,
+          createdAt: f.created_at,
+        }));
+      }),
     getByName: publicProcedure
       .input(z.object({ name: z.string() }))
       .query(async ({ input }) => {
@@ -98,10 +151,31 @@ export const appRouter = router({
           caPerUnit: typeof feed.ca_per_unit === 'number' ? feed.ca_per_unit : parseFloat(String(feed.ca_per_unit)) || 0,
           pPerUnit: typeof feed.p_per_unit === 'number' ? feed.p_per_unit : parseFloat(String(feed.p_per_unit)) || 0,
           defaultDsPercent: feed.default_ds_percent,
-          swPerKgDs: feed.sw_per_kg_ds,
-          vwPerKgDs: feed.vw_per_kg_ds,
+          swPerKgDs: typeof feed.sw_per_kg_ds === 'number' ? feed.sw_per_kg_ds : parseFloat(String(feed.sw_per_kg_ds)) || 0,
+          vwPerKgDs: typeof feed.vw_per_kg_ds === 'number' ? feed.vw_per_kg_ds : parseFloat(String(feed.vw_per_kg_ds)) || 0,
+          category: feed.category,
+          source: feed.source,
+          pricePerTon: feed.price_per_ton ? parseFloat(String(feed.price_per_ton)) : null,
+          isActive: feed.is_active,
+          sortOrder: feed.sort_order,
           createdAt: feed.created_at,
         };
+      }),
+  }),
+
+  // Profile Default Rations Router
+  profileRations: router({
+    getForProfile: publicProcedure
+      .input(z.object({ profileId: z.number() }))
+      .query(async ({ input }) => {
+        const rations = await getDefaultRationsForProfile(input.profileId);
+        return rations.map(r => ({
+          id: r.id,
+          profileId: r.profile_id,
+          feedId: r.feed_id,
+          defaultAmount: parseFloat(String(r.default_amount)),
+          createdAt: r.created_at,
+        }));
       }),
   }),
 

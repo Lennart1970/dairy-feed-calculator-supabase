@@ -63,6 +63,21 @@ export interface Feed {
   default_ds_percent: number;
   sw_per_kg_ds: string;
   vw_per_kg_ds: string | null;
+  category: string | null;
+  subcategory: string | null;
+  price_per_ton: string | null;
+  price_updated_at: string | null;
+  is_active: boolean;
+  sort_order: number | null;
+  source: string | null;
+  created_at: string;
+}
+
+export interface ProfileDefaultRation {
+  id: number;
+  profile_id: number;
+  feed_id: number;
+  default_amount: string;
   created_at: string;
 }
 
@@ -255,5 +270,78 @@ export async function getFeedByName(name: string): Promise<Feed | undefined> {
   } catch (error) {
     console.error("[Database] Failed to get feed:", error);
     return undefined;
+  }
+}
+
+// ============================================
+// Profile Default Rations Queries
+// ============================================
+
+export async function getDefaultRationsForProfile(profileId: number): Promise<ProfileDefaultRation[]> {
+  const supabase = getSupabase();
+
+  try {
+    const { data, error } = await supabase
+      .from('profile_default_rations')
+      .select('*')
+      .eq('profile_id', profileId)
+      .order('id');
+
+    if (error) {
+      console.error("[Database] Failed to get default rations:", error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error("[Database] Failed to get default rations:", error);
+    return [];
+  }
+}
+
+export async function getActiveFeeds(): Promise<Feed[]> {
+  const supabase = getSupabase();
+
+  try {
+    const { data, error } = await supabase
+      .from('feeds')
+      .select('*')
+      .eq('is_active', true)
+      .order('sort_order')
+      .order('name');
+
+    if (error) {
+      console.error("[Database] Failed to get active feeds:", error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error("[Database] Failed to get active feeds:", error);
+    return [];
+  }
+}
+
+export async function getFeedsByCategory(category: string): Promise<Feed[]> {
+  const supabase = getSupabase();
+
+  try {
+    const { data, error } = await supabase
+      .from('feeds')
+      .select('*')
+      .eq('category', category)
+      .eq('is_active', true)
+      .order('sort_order')
+      .order('name');
+
+    if (error) {
+      console.error("[Database] Failed to get feeds by category:", error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error("[Database] Failed to get feeds by category:", error);
+    return [];
   }
 }

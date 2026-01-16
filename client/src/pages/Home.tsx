@@ -26,7 +26,8 @@ const DEFAULT_CONCENTRATE_INPUTS: FeedInputState = {
   'stalbrok': { amountKg: 3.6, dsPercent: 89 },
   'startbrok': { amountKg: 1.4, dsPercent: 89 },
 };
-import { Milk, FileSpreadsheet, Download, ArrowRight, ArrowLeft, CheckCircle2, Wheat, FlaskConical, Settings2, Upload, Plus, X, Scale, Zap, Beef } from "lucide-react";
+import { Milk, FileSpreadsheet, Download, ArrowRight, ArrowLeft, CheckCircle2, Wheat, FlaskConical, Settings2, Upload, Plus, X, Scale, Zap, Beef, LayoutDashboard } from "lucide-react";
+import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -476,7 +477,13 @@ export default function Home() {
               </div>
             </div>
             
-
+            {/* Farm Dashboard Link */}
+            <Link href="/dashboard">
+              <a className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-100 hover:bg-green-200 text-green-700 transition-colors">
+                <LayoutDashboard className="w-4 h-4" />
+                <span className="font-medium">Bedrijf Dashboard</span>
+              </a>
+            </Link>
           </div>
         </div>
       </header>

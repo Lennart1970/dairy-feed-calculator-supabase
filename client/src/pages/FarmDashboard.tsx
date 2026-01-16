@@ -1,0 +1,355 @@
+import { useState } from 'react';
+import { Link } from 'wouter';
+import { trpc } from '../lib/trpc';
+import { 
+  calculateFPCM, 
+  calculateVemMaintenance, 
+  calculateVemProduction,
+  calculateDveMaintenance,
+  calculateDveProduction
+} from '../lib/cvbConstants';
+
+// Calculate requirements for a herd group
+function calculateGroupRequirements(group: {
+  avgWeightKg: number;
+  avgMilkYieldKg: number;
+  avgFatPercent: number;
+  avgProteinPercent: number;
+  lifeStage: string;
+}) {
+  if (group.lifeStage === 'dry') {
+    // Dry cow requirements
+    const vemMaintenance = 42.4 * Math.pow(group.avgWeightKg, 0.75); // Lower for dry cows
+    const dveMaintenance = 54 + 0.1 * group.avgWeightKg;
+    return {
+      fpcm: 0,
+      vem: Math.round(vemMaintenance),
+      dve: Math.round(dveMaintenance),
+    };
+  }
+
+  const fpcm = calculateFPCM(group.avgMilkYieldKg, group.avgFatPercent, group.avgProteinPercent);
+  const vemMaintenance = calculateVemMaintenance(group.avgWeightKg, true);
+  const vemProduction = calculateVemProduction(fpcm);
+  const dveMaintenance = calculateDveMaintenance(group.avgWeightKg);
+  const proteinYield = group.avgMilkYieldKg * (group.avgProteinPercent / 100) * 1000;
+  const dveProduction = calculateDveProduction(proteinYield);
+
+  return {
+    fpcm: Math.round(fpcm * 10) / 10,
+    vem: Math.round(vemMaintenance + vemProduction),
+    dve: Math.round(dveMaintenance + dveProduction),
+  };
+}
+
+export default function FarmDashboard() {
+  const [editingFarm, setEditingFarm] = useState(false);
+  const [farmName, setFarmName] = useState('');
+  const [milkPrice, setMilkPrice] = useState(0.42);
+
+  // Fetch farm data
+  const { data: farm, refetch: refetchFarm } = trpc.farm.get.useQuery();
+  const { data: groups, refetch: refetchGroups } = trpc.herdGroups.list.useQuery();
+  const { data: inventory } = trpc.inventory.list.useQuery();
+
+  const updateFarmMutation = trpc.farm.update.useMutation({
+    onSuccess: () => {
+      refetchFarm();
+      setEditingFarm(false);
+    },
+  });
+
+  // Calculate totals
+  const totalCows = groups?.reduce((sum, g) => sum + g.cowCount, 0) || 0;
+  const totalMilk = groups?.reduce((sum, g) => sum + (g.cowCount * g.avgMilkYieldKg), 0) || 0;
+  
+  // Calculate total VEM/DVE requirements
+  const totalRequirements = groups?.reduce((acc, g) => {
+    const req = calculateGroupRequirements(g);
+    return {
+      vem: acc.vem + (req.vem * g.cowCount),
+      dve: acc.dve + (req.dve * g.cowCount),
+    };
+  }, { vem: 0, dve: 0 }) || { vem: 0, dve: 0 };
+
+  // Calculate inventory alerts
+  const lowStockItems = inventory?.filter(item => {
+    if (!item.dailyUsageRateKg || item.dailyUsageRateKg === 0) return false;
+    const daysRemaining = item.currentStockKg / item.dailyUsageRateKg;
+    return daysRemaining < 14; // Alert if less than 2 weeks
+  }) || [];
+
+  const handleSaveFarm = () => {
+    if (farm) {
+      updateFarmMutation.mutate({
+        farmId: farm.id,
+        name: farmName,
+        milkPricePerKg: milkPrice,
+      });
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="text-3xl">🏠</span>
+              <div>
+                {editingFarm ? (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={farmName}
+                      onChange={(e) => setFarmName(e.target.value)}
+                      className="text-xl font-bold border rounded px-2 py-1"
+                    />
+                    <button
+                      onClick={handleSaveFarm}
+                      className="text-green-600 hover:text-green-800"
+                    >
+                      ✓
+                    </button>
+                    <button
+                      onClick={() => setEditingFarm(false)}
+                      className="text-red-600 hover:text-red-800"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ) : (
+                  <h1 
+                    className="text-xl font-bold text-gray-900 cursor-pointer hover:text-green-700"
+                    onClick={() => {
+                      setFarmName(farm?.name || '');
+                      setMilkPrice(farm?.milkPricePerKg || 0.42);
+                      setEditingFarm(true);
+                    }}
+                  >
+                    {farm?.name || 'Mijn Bedrijf'} ✏️
+                  </h1>
+                )}
+                <p className="text-sm text-gray-500">Farm Management Dashboard</p>
+              </div>
+            </div>
+            <Link href="/">
+              <a className="text-green-600 hover:text-green-800 flex items-center gap-1">
+                ← Terug naar Calculator
+              </a>
+            </Link>
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+        {/* Summary Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500">Totaal Koeien</p>
+                <p className="text-3xl font-bold text-gray-900">{totalCows}</p>
+              </div>
+              <span className="text-4xl">🐄</span>
+            </div>
+            <p className="text-xs text-gray-400 mt-2">{groups?.length || 0} groepen</p>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500">Dagelijkse Melk</p>
+                <p className="text-3xl font-bold text-blue-600">{totalMilk.toLocaleString('nl-NL')} kg</p>
+              </div>
+              <span className="text-4xl">🥛</span>
+            </div>
+            <p className="text-xs text-gray-400 mt-2">
+              €{((totalMilk * (farm?.milkPricePerKg || 0.42))).toLocaleString('nl-NL', { minimumFractionDigits: 0 })} /dag
+            </p>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500">VEM Behoefte</p>
+                <p className="text-3xl font-bold text-orange-600">{(totalRequirements.vem / 1000).toLocaleString('nl-NL', { maximumFractionDigits: 0 })}k</p>
+              </div>
+              <span className="text-4xl">⚡</span>
+            </div>
+            <p className="text-xs text-gray-400 mt-2">Totaal per dag</p>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500">DVE Behoefte</p>
+                <p className="text-3xl font-bold text-purple-600">{(totalRequirements.dve / 1000).toLocaleString('nl-NL', { maximumFractionDigits: 1 })}kg</p>
+              </div>
+              <span className="text-4xl">🥩</span>
+            </div>
+            <p className="text-xs text-gray-400 mt-2">Totaal per dag</p>
+          </div>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <Link href="/groepen">
+            <a className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg p-6 text-white hover:from-green-600 hover:to-green-700 transition-all transform hover:scale-105">
+              <div className="flex items-center gap-4">
+                <span className="text-5xl">👥</span>
+                <div>
+                  <h3 className="text-xl font-bold">Groepen Beheren</h3>
+                  <p className="text-green-100 text-sm">Koegroepen aanpassen</p>
+                </div>
+              </div>
+            </a>
+          </Link>
+
+          <Link href="/voorraad">
+            <a className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 text-white hover:from-blue-600 hover:to-blue-700 transition-all transform hover:scale-105">
+              <div className="flex items-center gap-4">
+                <span className="text-5xl">📦</span>
+                <div>
+                  <h3 className="text-xl font-bold">Voorraad Beheren</h3>
+                  <p className="text-blue-100 text-sm">Voorraden bijwerken</p>
+                </div>
+              </div>
+            </a>
+          </Link>
+
+          <Link href="/laadlijst">
+            <a className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl shadow-lg p-6 text-white hover:from-orange-600 hover:to-orange-700 transition-all transform hover:scale-105">
+              <div className="flex items-center gap-4">
+                <span className="text-5xl">📋</span>
+                <div>
+                  <h3 className="text-xl font-bold">Laadlijst</h3>
+                  <p className="text-orange-100 text-sm">Voermengwagen laden</p>
+                </div>
+              </div>
+            </a>
+          </Link>
+        </div>
+
+        {/* Herd Groups Overview */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 mb-8">
+          <div className="p-6 border-b border-gray-100">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                👥 Koegroepen Overzicht
+              </h2>
+              <Link href="/groepen">
+                <a className="text-green-600 hover:text-green-800 text-sm">
+                  Beheren →
+                </a>
+              </Link>
+            </div>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Groep</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Koeien</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Melk (kg)</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">FPCM</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">VEM/koe</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">DVE/koe</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">DIM</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {groups?.map((group) => {
+                  const req = calculateGroupRequirements(group);
+                  return (
+                    <tr key={group.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xl">
+                            {group.lifeStage === 'dry' ? '🤰' : '🐄'}
+                          </span>
+                          <span className="font-medium text-gray-900">{group.name}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-right text-gray-900">{group.cowCount}</td>
+                      <td className="px-6 py-4 text-right text-gray-900">
+                        {group.lifeStage === 'dry' ? '-' : group.avgMilkYieldKg.toFixed(1)}
+                      </td>
+                      <td className="px-6 py-4 text-right text-gray-900">
+                        {req.fpcm > 0 ? req.fpcm.toFixed(1) : '-'}
+                      </td>
+                      <td className="px-6 py-4 text-right text-orange-600 font-medium">
+                        {req.vem.toLocaleString('nl-NL')}
+                      </td>
+                      <td className="px-6 py-4 text-right text-purple-600 font-medium">
+                        {req.dve}g
+                      </td>
+                      <td className="px-6 py-4 text-right text-gray-500">
+                        {group.lifeStage === 'dry' ? '-' : group.avgDaysInMilk}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Inventory Alerts */}
+        {lowStockItems.length > 0 && (
+          <div className="bg-red-50 border border-red-200 rounded-xl p-6 mb-8">
+            <h3 className="text-lg font-semibold text-red-800 flex items-center gap-2 mb-4">
+              ⚠️ Voorraad Waarschuwingen
+            </h3>
+            <div className="space-y-2">
+              {lowStockItems.map((item) => {
+                const daysRemaining = Math.floor(item.currentStockKg / item.dailyUsageRateKg);
+                return (
+                  <div key={item.id} className="flex items-center justify-between bg-white rounded-lg p-3">
+                    <span className="font-medium text-gray-900">{item.feed?.displayName}</span>
+                    <span className="text-red-600 font-medium">
+                      {daysRemaining} dagen resterend
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+            <Link href="/voorraad">
+              <a className="mt-4 inline-block text-red-700 hover:text-red-900 font-medium">
+                Voorraad bijwerken →
+              </a>
+            </Link>
+          </div>
+        )}
+
+        {/* Milk Price Setting */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">⚙️ Instellingen</h3>
+          <div className="flex items-center gap-4">
+            <label className="text-gray-600">Melkprijs:</label>
+            <div className="flex items-center gap-2">
+              <span className="text-gray-500">€</span>
+              <input
+                type="number"
+                step="0.01"
+                value={farm?.milkPricePerKg || 0.42}
+                onChange={(e) => {
+                  const newPrice = parseFloat(e.target.value);
+                  if (farm && !isNaN(newPrice)) {
+                    updateFarmMutation.mutate({
+                      farmId: farm.id,
+                      milkPricePerKg: newPrice,
+                    });
+                  }
+                }}
+                className="w-24 border rounded px-2 py-1 text-right"
+              />
+              <span className="text-gray-500">per kg</span>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}

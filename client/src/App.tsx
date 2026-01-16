@@ -9,6 +9,8 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
 import Sources from "./pages/Sources";
 import FeedManagement from "./pages/FeedManagement";
+import FarmDashboard from "./pages/FarmDashboard";
+import HerdGroups from "./pages/HerdGroups";
 
 function Router() {
   const [location] = useLocation();
@@ -60,6 +62,9 @@ function Router() {
       <Route path={"/sources"} component={Sources} />
       <Route path={"/beheer"} component={FeedManagement} />
       <Route path={"/feeds"} component={FeedManagement} />
+      {/* Farm Management Routes */}
+      <Route path={"/dashboard"} component={FarmDashboard} />
+      <Route path={"/groepen"} component={HerdGroups} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />

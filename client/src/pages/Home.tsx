@@ -12,6 +12,8 @@ import BehoefteCard from "@/components/BehoefteCard";
 import { LabReportUpload, type ParsedFeedData } from "@/components/LabReportUpload";
 import SectionNav from "@/components/SectionNav";
 import { type CalculationResult, type FeedData, type FeedInput } from "@/lib/calculator";
+import { AuditableCalculationDisplay } from "@/components/AuditableCalculationDisplay";
+import { runAuditableCalculation, type AuditableCalculationResult } from "@/lib/auditableBridge";
 
 // Concentrate feed inputs state type
 type FeedInputState = Record<string, FeedInput>;
@@ -243,6 +245,12 @@ export default function Home() {
   const [isExpertReportOpen, setIsExpertReportOpen] = useState(false);
   const [concentrateFeedData, setConcentrateFeedData] = useState<ConcentrateFeedData | null>(null);
   
+  // Expert report tab state
+  const [expertReportTab, setExpertReportTab] = useState<'report' | 'audit'>('report');
+  
+  // Auditable calculation result
+  const [auditableResult, setAuditableResult] = useState<AuditableCalculationResult | null>(null);
+  
   // Concentrate feed inputs state (lifted from CalculatorForm for immediate availability)
   const [concentrateFeedInputs, setConcentrateFeedInputs] = useState<FeedInputState>(DEFAULT_CONCENTRATE_INPUTS);
   
@@ -368,6 +376,31 @@ export default function Home() {
   const handleConcentrateFeedDataReady = useCallback((data: ConcentrateFeedData) => {
     setConcentrateFeedData(data);
   }, []);
+
+  // Run auditable calculation when inputs change
+  useEffect(() => {
+    if (!selectedProfileName || !concentrateFeeds.length) return;
+    
+    try {
+      const result = runAuditableCalculation(
+        roughageFeeds,
+        concentrateFeeds,
+        concentrateFeedInputs,
+        {
+          name: selectedProfileName,
+          weightKg: 700, // Default weight, will be overridden by profile
+        },
+        'Volwassen (2+ lactaties)', // Default parity
+        '>100 dagen (midden/late lactatie)', // Default DIM
+        'Niet drachtig', // Default pregnancy
+        mprData,
+        isGrazing
+      );
+      setAuditableResult(result);
+    } catch (error) {
+      console.error('Auditable calculation error:', error);
+    }
+  }, [roughageFeeds, concentrateFeeds, concentrateFeedInputs, selectedProfileName, mprData, isGrazing]);
 
   // Check if selected profile is a lactating cow (show MPR for milk-producing animals)
   const isLactatingCow = selectedProfileName && (
@@ -593,8 +626,8 @@ export default function Home() {
         {/* PAGE 4: Expert Rapport */}
         {currentPage === 4 && (
           <div className="space-y-6">
-            {/* Back button */}
-            <div className="flex justify-start">
+            {/* Back button and Tab Navigation */}
+            <div className="flex justify-between items-center">
               <Button
                 variant="outline"
                 onClick={() => { setCurrentPage('calculator'); handleSectionClick('optimalisatie'); }}
@@ -603,26 +636,67 @@ export default function Home() {
                 <ArrowLeft className="w-4 h-4" />
                 Terug naar Calculator
               </Button>
+              
+              {/* Tab buttons */}
+              <div className="flex gap-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
+                <button
+                  onClick={() => setExpertReportTab('report')}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                    expertReportTab === 'report'
+                      ? 'bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  📊 Expert Rapport
+                </button>
+                <button
+                  onClick={() => setExpertReportTab('audit')}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                    expertReportTab === 'audit'
+                      ? 'bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  🔍 Audit Trail
+                </button>
+              </div>
             </div>
 
-            {/* Expert Report Content */}
-            {expertReportData && calculationResult ? (
-              <ExpertReport
-                result={calculationResult}
-                feeds={expertReportData.feeds}
-                feedInputs={expertReportData.feedInputs}
-                mprData={mprData}
-                animalProfile={expertReportData.animalProfile}
-              />
+            {/* Tab Content */}
+            {expertReportTab === 'report' ? (
+              // Expert Report Content
+              expertReportData && calculationResult ? (
+                <ExpertReport
+                  result={calculationResult}
+                  feeds={expertReportData.feeds}
+                  feedInputs={expertReportData.feedInputs}
+                  mprData={mprData}
+                  animalProfile={expertReportData.animalProfile}
+                />
+              ) : (
+                <Card>
+                  <CardContent className="py-12 text-center">
+                    <FileSpreadsheet className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+                    <p className="text-muted-foreground">
+                      Vul eerst de voedergegevens in op de vorige pagina's om het expert rapport te genereren.
+                    </p>
+                  </CardContent>
+                </Card>
+              )
             ) : (
-              <Card>
-                <CardContent className="py-12 text-center">
-                  <FileSpreadsheet className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-                  <p className="text-muted-foreground">
-                    Vul eerst de voedergegevens in op de vorige pagina's om het expert rapport te genereren.
-                  </p>
-                </CardContent>
-              </Card>
+              // Audit Trail Content
+              auditableResult ? (
+                <AuditableCalculationDisplay result={auditableResult} />
+              ) : (
+                <Card>
+                  <CardContent className="py-12 text-center">
+                    <FileSpreadsheet className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+                    <p className="text-muted-foreground">
+                      Vul eerst de voedergegevens in om de audit trail te genereren.
+                    </p>
+                  </CardContent>
+                </Card>
+              )
             )}
           </div>
         )}

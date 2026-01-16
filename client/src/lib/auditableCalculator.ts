@@ -607,14 +607,15 @@ export function calculateFeedContribution(feed: FeedInput): FeedContribution {
   // VEM contribution
   const vemContribution = nutrientMultiplier * feed.vemPerUnit;
   // CVB 2025: All nutritional values are per kg DS, so we always show kg DS in the formula
+  // Use 3 decimal places for kg DS to ensure displayed math matches actual result
   const vemStep = createStep(
     `VEM van ${feed.displayName}`,
     'VEM = kg DS × VEM/kg DS',
     { 
-      'kg DS': round(amountKgDs, 2),
+      'kg DS': round(amountKgDs, 3),
       'VEM/kg DS': feed.vemPerUnit
     },
-    `${round(amountKgDs, 2)} × ${feed.vemPerUnit} = ${round(vemContribution)}`,
+    `${round(amountKgDs, 3)} × ${feed.vemPerUnit} = ${round(vemContribution)}`,
     vemContribution,
     'VEM',
     'CVB Veevoedertabel 2025'
@@ -626,10 +627,10 @@ export function calculateFeedContribution(feed: FeedInput): FeedContribution {
     `DVE van ${feed.displayName}`,
     'DVE = kg DS × DVE/kg DS',
     { 
-      'kg DS': round(amountKgDs, 2),
+      'kg DS': round(amountKgDs, 3),
       'DVE/kg DS': feed.dvePerUnit
     },
-    `${round(amountKgDs, 2)} × ${feed.dvePerUnit} = ${round(dveContribution)}`,
+    `${round(amountKgDs, 3)} × ${feed.dvePerUnit} = ${round(dveContribution)}`,
     dveContribution,
     'gram',
     'CVB Veevoedertabel 2025'
@@ -641,10 +642,10 @@ export function calculateFeedContribution(feed: FeedInput): FeedContribution {
     `OEB van ${feed.displayName}`,
     'OEB = kg DS × OEB/kg DS',
     { 
-      'kg DS': round(amountKgDs, 2),
+      'kg DS': round(amountKgDs, 3),
       'OEB/kg DS': feed.oebPerUnit
     },
-    `${round(amountKgDs, 2)} × ${feed.oebPerUnit} = ${round(oebContribution)}`,
+    `${round(amountKgDs, 3)} × ${feed.oebPerUnit} = ${round(oebContribution)}`,
     oebContribution,
     'gram',
     'CVB Veevoedertabel 2025'
@@ -656,10 +657,10 @@ export function calculateFeedContribution(feed: FeedInput): FeedContribution {
     `SW van ${feed.displayName}`,
     'SW = kg DS × SW/kg DS',
     { 
-      'kg DS': round(amountKgDs, 2),
+      'kg DS': round(amountKgDs, 3),
       'SW/kg DS': feed.swPerKgDs
     },
-    `${round(amountKgDs, 2)} × ${feed.swPerKgDs} = ${round(swContribution, 2)}`,
+    `${round(amountKgDs, 3)} × ${feed.swPerKgDs} = ${round(swContribution, 3)}`,
     swContribution,
     'SW',
     'CVB 2022, Structuurwaarde'
@@ -671,10 +672,10 @@ export function calculateFeedContribution(feed: FeedInput): FeedContribution {
     `VW van ${feed.displayName}`,
     'VW = kg DS × VW/kg DS',
     { 
-      'kg DS': round(amountKgDs, 2),
+      'kg DS': round(amountKgDs, 3),
       'VW/kg DS': feed.vwPerKgDs
     },
-    `${round(amountKgDs, 2)} × ${feed.vwPerKgDs} = ${round(vwContribution, 2)}`,
+    `${round(amountKgDs, 3)} × ${feed.vwPerKgDs} = ${round(vwContribution, 3)}`,
     vwContribution,
     'VW',
     'CVB 2007, Verzadigingswaarde'

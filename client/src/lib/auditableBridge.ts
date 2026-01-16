@@ -68,12 +68,12 @@ const DEFAULT_FEED_VALUES: Record<string, { sw: number; vw: number }> = {
   'mais_silage': { sw: 0.75, vw: 0.85 },
   'hooi': { sw: 1.20, vw: 1.30 },
   
-  // Concentrates
+  // Concentrates (values from CVB Veevoedertabel 2025 / database)
   'bierborstel': { sw: 0.15, vw: 0.45 },
-  'gerstmeel': { sw: 0.05, vw: 0.35 },
-  'raapzaadschroot': { sw: 0.10, vw: 0.40 },
-  'stalbrok': { sw: 0.08, vw: 0.38 },
-  'startbrok': { sw: 0.08, vw: 0.38 },
+  'gerstmeel': { sw: 0.50, vw: 0.40 },
+  'raapzaadschroot': { sw: 0.40, vw: 0.32 },
+  'stalbrok': { sw: 0.45, vw: 0.38 },
+  'startbrok': { sw: 0.40, vw: 0.35 },
   
   // Defaults
   'roughage': { sw: 1.00, vw: 1.00 },

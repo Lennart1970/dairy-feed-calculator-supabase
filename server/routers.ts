@@ -45,9 +45,19 @@ export const appRouter = router({
     list: publicProcedure.query(async () => {
       const feedList = await getAllFeeds();
       return feedList.map(f => ({
-        ...f,
+        id: f.id,
+        name: f.name,
+        displayName: f.display_name,
+        basis: f.basis,
+        vemPerUnit: f.vem_per_unit,
+        dvePerUnit: f.dve_per_unit,
+        oebPerUnit: f.oeb_per_unit,
         caPerUnit: typeof f.ca_per_unit === 'number' ? f.ca_per_unit : parseFloat(String(f.ca_per_unit)) || 0,
         pPerUnit: typeof f.p_per_unit === 'number' ? f.p_per_unit : parseFloat(String(f.p_per_unit)) || 0,
+        defaultDsPercent: f.default_ds_percent,
+        swPerKgDs: f.sw_per_kg_ds,
+        vwPerKgDs: f.vw_per_kg_ds,
+        createdAt: f.created_at,
       }));
     }),
     getByName: publicProcedure

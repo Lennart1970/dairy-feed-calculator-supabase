@@ -759,13 +759,20 @@ export default function Home() {
 
         {/* Footer Info */}
         <footer className="mt-16 pt-8 border-t border-slate-200/50 dark:border-slate-800/50">
-          <div className="text-center text-sm text-muted-foreground space-y-2">
+          <div className="text-center text-sm text-muted-foreground space-y-3">
             <p>
               Voedingswaarden gebaseerd op <span className="font-medium">Tabellenboek Voeding Herkauwers 2025</span> (CVB)
             </p>
             <p className="text-xs">
               VEM = Voedereenheid Melk • DVE = Darm Verteerbaar Eiwit • OEB = Onbestendig Eiwit Balans
             </p>
+            <a 
+              href="/bronnen" 
+              className="inline-flex items-center gap-2 text-xs text-green-600 hover:text-green-700 font-medium transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
+              Bekijk alle bronnen & referenties (50+ wetenschappelijke bronnen)
+            </a>
           </div>
         </footer>
       </main>

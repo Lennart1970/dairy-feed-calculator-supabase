@@ -424,48 +424,58 @@ export function AuditableCalculationDisplay({ result }: AuditableCalculationDisp
       {/* Balances */}
       <Section title="Voedingsbalans" icon="⚖️" defaultExpanded={true}>
         <div className="space-y-4">
-          {result.balances.map((balance, index) => (
-            <div 
-              key={index}
-              className={`rounded-lg p-4 border ${
-                balance.status === 'ok' ? 'bg-green-50 border-green-200' :
-                balance.status === 'warning' ? 'bg-yellow-50 border-yellow-200' :
-                'bg-red-50 border-red-200'
-              }`}
-            >
-              <div className="flex justify-between items-center mb-2">
-                <span className="font-semibold text-gray-800">{balance.parameter}</span>
-                <span className={`text-lg font-bold ${
-                  balance.status === 'ok' ? 'text-green-700' :
-                  balance.status === 'warning' ? 'text-yellow-700' :
-                  'text-red-700'
-                }`}>
-                  {balance.balancePercent}% dekking
-                </span>
-              </div>
-              
-              <div className="grid grid-cols-3 gap-4 text-sm">
-                <div>
-                  <span className="text-gray-500">Behoefte:</span>
-                  <span className="ml-2 font-medium">{balance.requirement.toLocaleString('nl-NL')} {balance.unit}</span>
-                </div>
-                <div>
-                  <span className="text-gray-500">Aanbod:</span>
-                  <span className="ml-2 font-medium">{balance.supply.toLocaleString('nl-NL')} {balance.unit}</span>
-                </div>
-                <div>
-                  <span className="text-gray-500">Balans:</span>
-                  <span className={`ml-2 font-medium ${balance.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {balance.balance >= 0 ? '+' : ''}{balance.balance.toLocaleString('nl-NL')} {balance.unit}
+          {result.balances.map((balance, index) => {
+            // OEB is a threshold (≥0), not a requirement - use different labels
+            const isOEB = balance.parameter === 'OEB';
+            const requirementLabel = isOEB ? 'Doel:' : 'Behoefte:';
+            const requirementDisplay = isOEB ? '≥ 0' : balance.requirement.toLocaleString('nl-NL');
+            const coverageDisplay = isOEB 
+              ? (balance.supply >= 0 ? 'Status: OK' : 'Status: Tekort')
+              : `${balance.balancePercent}% dekking`;
+            
+            return (
+              <div 
+                key={index}
+                className={`rounded-lg p-4 border ${
+                  balance.status === 'ok' ? 'bg-green-50 border-green-200' :
+                  balance.status === 'warning' ? 'bg-yellow-50 border-yellow-200' :
+                  'bg-red-50 border-red-200'
+                }`}
+              >
+                <div className="flex justify-between items-center mb-2">
+                  <span className="font-semibold text-gray-800">{balance.parameter}</span>
+                  <span className={`text-lg font-bold ${
+                    balance.status === 'ok' ? 'text-green-700' :
+                    balance.status === 'warning' ? 'text-yellow-700' :
+                    'text-red-700'
+                  }`}>
+                    {coverageDisplay}
                   </span>
                 </div>
+                
+                <div className="grid grid-cols-3 gap-4 text-sm">
+                  <div>
+                    <span className="text-gray-500">{requirementLabel}</span>
+                    <span className="ml-2 font-medium">{requirementDisplay} {balance.unit}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Aanbod:</span>
+                    <span className="ml-2 font-medium">{balance.supply.toLocaleString('nl-NL')} {balance.unit}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Balans:</span>
+                    <span className={`ml-2 font-medium ${balance.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {balance.balance >= 0 ? '+' : ''}{balance.balance.toLocaleString('nl-NL')} {balance.unit}
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="mt-2 text-xs text-gray-500">
+                  Berekening: {balance.calculation.calculation}
+                </div>
               </div>
-              
-              <div className="mt-2 text-xs text-gray-500">
-                Berekening: {balance.calculation.calculation}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </Section>
       

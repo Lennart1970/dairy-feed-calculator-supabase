@@ -1,146 +1,259 @@
-import { eq } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, animalProfiles, feeds } from "../drizzle/schema";
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { InsertUser } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
-let _db: ReturnType<typeof drizzle> | null = null;
+// Supabase configuration
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://dctxqqfjwzlyqtdwyidm.supabase.co';
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRjdHhxcWZqd3pseXF0ZHd5aWRtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0OTM2MjksImV4cCI6MjA4NDA2OTYyOX0.tzEYxCHOZ0Q7wu5Qgj1BC76ObEYTMOxC3b2oY8GMMPk';
 
-// Lazily create the drizzle instance so local tooling can run without a DB.
-export async function getDb() {
-  if (!_db && process.env.DATABASE_URL) {
-    try {
-      _db = drizzle(process.env.DATABASE_URL);
-    } catch (error) {
-      console.warn("[Database] Failed to connect:", error);
-      _db = null;
-    }
+let _supabase: SupabaseClient | null = null;
+
+// Get Supabase client
+function getSupabase(): SupabaseClient {
+  if (!_supabase) {
+    _supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    console.log('[Database] Connected to Supabase');
   }
-  return _db;
+  return _supabase;
 }
+
+// ============================================
+// Types
+// ============================================
+
+export interface User {
+  id: number;
+  open_id: string;
+  openId?: string; // alias for compatibility
+  name: string | null;
+  email: string | null;
+  login_method: string | null;
+  loginMethod?: string | null; // alias for compatibility
+  role: string;
+  last_signed_in: string;
+  lastSignedIn?: Date; // alias for compatibility
+  created_at: string;
+}
+
+export interface AnimalProfile {
+  id: number;
+  name: string;
+  description: string | null;
+  notes: string | null;
+  weight_kg: number;
+  vem_target: number;
+  dve_target_grams: number;
+  max_bds_kg: string;
+  parity: number | null;
+  days_in_milk: number | null;
+  days_pregnant: number | null;
+  created_at: string;
+}
+
+export interface Feed {
+  id: number;
+  name: string;
+  display_name: string;
+  basis: string;
+  vem_per_unit: number;
+  dve_per_unit: number;
+  oeb_per_unit: number;
+  ca_per_unit: string;
+  p_per_unit: string;
+  default_ds_percent: number;
+  sw_per_kg_ds: string;
+  vw_per_kg_ds: string | null;
+  created_at: string;
+}
+
+// ============================================
+// User Queries
+// ============================================
 
 export async function upsertUser(user: InsertUser): Promise<void> {
   if (!user.openId) {
     throw new Error("User openId is required for upsert");
   }
 
-  const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot upsert user: database not available");
-    return;
-  }
+  const supabase = getSupabase();
 
   try {
-    const values: InsertUser = {
-      openId: user.openId,
-    };
-    const updateSet: Record<string, unknown> = {};
+    // Check if user exists
+    const { data: existingUser } = await supabase
+      .from('users')
+      .select('*')
+      .eq('open_id', user.openId)
+      .single();
 
-    const textFields = ["name", "email", "loginMethod"] as const;
-    type TextField = (typeof textFields)[number];
+    const now = new Date().toISOString();
 
-    const assignNullable = (field: TextField) => {
-      const value = user[field];
-      if (value === undefined) return;
-      const normalized = value ?? null;
-      values[field] = normalized;
-      updateSet[field] = normalized;
-    };
+    if (existingUser) {
+      // Update existing user
+      const updateData: Record<string, unknown> = {
+        last_signed_in: user.lastSignedIn?.toISOString() || now,
+      };
+      if (user.name !== undefined) updateData.name = user.name;
+      if (user.email !== undefined) updateData.email = user.email;
+      if (user.loginMethod !== undefined) updateData.login_method = user.loginMethod;
+      if (user.role !== undefined) updateData.role = user.role;
 
-    textFields.forEach(assignNullable);
-
-    if (user.lastSignedIn !== undefined) {
-      values.lastSignedIn = user.lastSignedIn;
-      updateSet.lastSignedIn = user.lastSignedIn;
+      await supabase
+        .from('users')
+        .update(updateData)
+        .eq('open_id', user.openId);
+    } else {
+      // Insert new user
+      await supabase.from('users').insert({
+        open_id: user.openId,
+        name: user.name || null,
+        email: user.email || null,
+        login_method: user.loginMethod || null,
+        role: user.role || (user.openId === ENV.ownerOpenId ? 'admin' : 'user'),
+        last_signed_in: user.lastSignedIn?.toISOString() || now,
+      });
     }
-    if (user.role !== undefined) {
-      values.role = user.role;
-      updateSet.role = user.role;
-    } else if (user.openId === ENV.ownerOpenId) {
-      values.role = 'admin';
-      updateSet.role = 'admin';
-    }
-
-    if (!values.lastSignedIn) {
-      values.lastSignedIn = new Date();
-    }
-
-    if (Object.keys(updateSet).length === 0) {
-      updateSet.lastSignedIn = new Date();
-    }
-
-    await db.insert(users).values(values).onDuplicateKeyUpdate({
-      set: updateSet,
-    });
   } catch (error) {
     console.error("[Database] Failed to upsert user:", error);
     throw error;
   }
 }
 
-export async function getUserByOpenId(openId: string) {
-  const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot get user: database not available");
+export async function getUserByOpenId(openId: string): Promise<User | undefined> {
+  const supabase = getSupabase();
+
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('open_id', openId)
+      .single();
+
+    if (error || !data) {
+      return undefined;
+    }
+
+    // Map to expected format
+    return {
+      ...data,
+      openId: data.open_id,
+      loginMethod: data.login_method,
+      lastSignedIn: new Date(data.last_signed_in),
+    };
+  } catch (error) {
+    console.error("[Database] Failed to get user:", error);
     return undefined;
   }
-
-  const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
-
-  return result.length > 0 ? result[0] : undefined;
 }
 
 // ============================================
 // Animal Profiles Queries
 // ============================================
 
-export async function getAllAnimalProfiles() {
-  const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot get animal profiles: database not available");
+export async function getAllAnimalProfiles(): Promise<AnimalProfile[]> {
+  const supabase = getSupabase();
+
+  try {
+    const { data, error } = await supabase
+      .from('animal_profiles')
+      .select('*')
+      .order('id');
+
+    if (error) {
+      console.error("[Database] Failed to get animal profiles:", error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error("[Database] Failed to get animal profiles:", error);
     return [];
   }
-  return db.select().from(animalProfiles);
 }
 
-export async function getAnimalProfileById(id: number) {
-  const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot get animal profile: database not available");
+export async function getAnimalProfileById(id: number): Promise<AnimalProfile | undefined> {
+  const supabase = getSupabase();
+
+  try {
+    const { data, error } = await supabase
+      .from('animal_profiles')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error || !data) {
+      return undefined;
+    }
+
+    return data;
+  } catch (error) {
+    console.error("[Database] Failed to get animal profile:", error);
     return undefined;
   }
-  const result = await db.select().from(animalProfiles).where(eq(animalProfiles.id, id)).limit(1);
-  return result.length > 0 ? result[0] : undefined;
 }
 
 // ============================================
 // Feeds Queries
 // ============================================
 
-export async function getAllFeeds() {
-  const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot get feeds: database not available");
+export async function getAllFeeds(): Promise<Feed[]> {
+  const supabase = getSupabase();
+
+  try {
+    const { data, error } = await supabase
+      .from('feeds')
+      .select('*')
+      .order('id');
+
+    if (error) {
+      console.error("[Database] Failed to get feeds:", error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error("[Database] Failed to get feeds:", error);
     return [];
   }
-  return db.select().from(feeds);
 }
 
-export async function getFeedById(id: number) {
-  const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot get feed: database not available");
+export async function getFeedById(id: number): Promise<Feed | undefined> {
+  const supabase = getSupabase();
+
+  try {
+    const { data, error } = await supabase
+      .from('feeds')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error || !data) {
+      return undefined;
+    }
+
+    return data;
+  } catch (error) {
+    console.error("[Database] Failed to get feed:", error);
     return undefined;
   }
-  const result = await db.select().from(feeds).where(eq(feeds.id, id)).limit(1);
-  return result.length > 0 ? result[0] : undefined;
 }
 
-export async function getFeedByName(name: string) {
-  const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot get feed: database not available");
+export async function getFeedByName(name: string): Promise<Feed | undefined> {
+  const supabase = getSupabase();
+
+  try {
+    const { data, error } = await supabase
+      .from('feeds')
+      .select('*')
+      .eq('name', name)
+      .single();
+
+    if (error || !data) {
+      return undefined;
+    }
+
+    return data;
+  } catch (error) {
+    console.error("[Database] Failed to get feed:", error);
     return undefined;
   }
-  const result = await db.select().from(feeds).where(eq(feeds.name, name)).limit(1);
-  return result.length > 0 ? result[0] : undefined;
 }

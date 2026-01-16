@@ -25,7 +25,7 @@ export const appRouter = router({
       const profiles = await getAllAnimalProfiles();
       return profiles.map(p => ({
         ...p,
-        maxBdsKg: parseFloat(String(p.maxBdsKg)),
+        maxBdsKg: typeof p.max_bds_kg === 'number' ? p.max_bds_kg : parseFloat(String(p.max_bds_kg)) || 0,
       }));
     }),
     getById: publicProcedure
@@ -46,8 +46,8 @@ export const appRouter = router({
       const feedList = await getAllFeeds();
       return feedList.map(f => ({
         ...f,
-        caPerUnit: parseFloat(String(f.caPerUnit)),
-        pPerUnit: parseFloat(String(f.pPerUnit)),
+        caPerUnit: typeof f.ca_per_unit === 'number' ? f.ca_per_unit : parseFloat(String(f.ca_per_unit)) || 0,
+        pPerUnit: typeof f.p_per_unit === 'number' ? f.p_per_unit : parseFloat(String(f.p_per_unit)) || 0,
       }));
     }),
     getByName: publicProcedure

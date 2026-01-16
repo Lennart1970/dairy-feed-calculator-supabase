@@ -14,14 +14,18 @@ function Router() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check authentication status
-    fetch("/api/auth/status")
+    // Check authentication status with credentials included
+    fetch("/api/auth/status", {
+      credentials: "include",
+    })
       .then((res) => res.json())
       .then((data) => {
+        console.log("[Auth] Status check result:", data);
         setIsAuthenticated(data.authenticated);
         setIsLoading(false);
       })
-      .catch(() => {
+      .catch((err) => {
+        console.error("[Auth] Status check failed:", err);
         setIsAuthenticated(false);
         setIsLoading(false);
       });

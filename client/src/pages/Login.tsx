@@ -1,17 +1,28 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useLocation } from "wouter";
 
 export default function Login() {
   const [, setLocation] = useLocation();
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const usernameRef = useRef<HTMLInputElement>(null);
+  const passwordRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
+
+    const username = usernameRef.current?.value || "";
+    const password = passwordRef.current?.value || "";
+
+    console.log("[Login] Attempting login with:", { username, passwordLength: password.length });
+
+    if (!username || !password) {
+      setError("Please enter both username and password");
+      setLoading(false);
+      return;
+    }
 
     try {
       const response = await fetch("/api/auth/login", {
@@ -23,15 +34,18 @@ export default function Login() {
         body: JSON.stringify({ username, password }),
       });
 
+      console.log("[Login] Response status:", response.status);
       const data = await response.json();
+      console.log("[Login] Response data:", data);
 
-      if (response.ok) {
-        // Redirect to home page on success
-        setLocation("/");
+      if (response.ok && data.success) {
+        // Force a page reload to update auth state
+        window.location.href = "/";
       } else {
         setError(data.error || "Login failed");
       }
     } catch (err) {
+      console.error("[Login] Error:", err);
       setError("Network error. Please try again.");
     } finally {
       setLoading(false);
@@ -56,6 +70,7 @@ export default function Login() {
                 Username
               </label>
               <input
+                ref={usernameRef}
                 id="username"
                 name="username"
                 type="text"
@@ -63,8 +78,7 @@ export default function Login() {
                 required
                 className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-green-500 focus:border-green-500 focus:z-10 sm:text-sm"
                 placeholder="Username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                defaultValue=""
               />
             </div>
             <div>
@@ -72,6 +86,7 @@ export default function Login() {
                 Password
               </label>
               <input
+                ref={passwordRef}
                 id="password"
                 name="password"
                 type="password"
@@ -79,8 +94,7 @@ export default function Login() {
                 required
                 className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-green-500 focus:border-green-500 focus:z-10 sm:text-sm"
                 placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                defaultValue=""
               />
             </div>
           </div>

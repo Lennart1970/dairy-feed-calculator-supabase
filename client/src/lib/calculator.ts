@@ -13,6 +13,13 @@ import {
   DVE_PRODUCTION_LINEAR,
   DVE_PRODUCTION_QUADRATIC,
   calculateMetabolicWeight,
+  // Threshold constants
+  COVERAGE_WARNING,
+  COVERAGE_FULL,
+  COVERAGE_EXCESS,
+  OEB_WARNING_THRESHOLD,
+  OEB_MINIMUM,
+  SW_WARNING_THRESHOLD,
 } from './cvbConstants';
 
 export interface FeedData {
@@ -175,9 +182,10 @@ function getStatus(
   balance: number
 ): 'ok' | 'warning' | 'deficient' {
   // Special handling for OEB (should be >= 0)
+  // OEB_MINIMUM = 0, OEB_WARNING_THRESHOLD = -50 (from cvbConstants)
   if (parameter === 'OEB') {
-    if (supply < -50) return 'deficient';
-    if (supply < 0) return 'warning';
+    if (supply < OEB_WARNING_THRESHOLD) return 'deficient';
+    if (supply < OEB_MINIMUM) return 'warning';
     return 'ok';
   }
   
@@ -188,11 +196,12 @@ function getStatus(
   }
   
   // For VEM, DVE, Ca, P - check if supply meets requirement
+  // COVERAGE_WARNING = 90%, COVERAGE_FULL = 100%, COVERAGE_EXCESS = 110% (from cvbConstants)
   const percentOfRequirement = (supply / requirement) * 100;
   
-  if (percentOfRequirement < 90) return 'deficient';
-  if (percentOfRequirement < 100) return 'warning';
-  if (percentOfRequirement > 110) return 'warning'; // Excess
+  if (percentOfRequirement < COVERAGE_WARNING) return 'deficient';
+  if (percentOfRequirement < COVERAGE_FULL) return 'warning';
+  if (percentOfRequirement > COVERAGE_EXCESS) return 'warning'; // Excess
   return 'ok';
 }
 
@@ -440,7 +449,7 @@ export function calculateStructureValue(
   if (swPerKgDs >= MIN_SW_REQUIREMENT) {
     status = 'ok';
     message = 'Voldoende structuur voor gezonde penswerking';
-  } else if (swPerKgDs >= 0.85) {
+  } else if (swPerKgDs >= SW_WARNING_THRESHOLD) {
     status = 'warning';
     message = 'Marginale structuur - verhoog ruwvoeraandeel';
   } else {

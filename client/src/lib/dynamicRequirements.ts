@@ -18,6 +18,7 @@ import {
   DVE_PRODUCTION_LINEAR,
   DVE_PRODUCTION_QUADRATIC,
   DVE_PREGNANCY_LATE,
+  PREGNANCY_EXTRA_REQUIREMENT_START,
   calculateMetabolicWeight,
 } from './cvbConstants';
 
@@ -78,15 +79,15 @@ function calculateVemProduction(fpcm: number): number {
 /**
  * Calculate VEM pregnancy surcharge
  * Exponential curve based on days pregnant
- * Significant after ~190 days
+ * Significant after ~190 days (PREGNANCY_EXTRA_REQUIREMENT_START from cvbConstants)
  */
 function calculateVemPregnancy(daysPregnant: number): number {
-  if (daysPregnant < 190) return 0;
+  if (daysPregnant < PREGNANCY_EXTRA_REQUIREMENT_START) return 0;
   
   // Exponential formula from CVB 2025
   // Approximation: increases from 0 at day 190 to ~2000 VEM at day 283
-  const daysAfter190 = daysPregnant - 190;
-  const pregnancyVem = Math.pow(daysAfter190 / 93, 2) * 2000;
+  const daysAfterThreshold = daysPregnant - PREGNANCY_EXTRA_REQUIREMENT_START;
+  const pregnancyVem = Math.pow(daysAfterThreshold / 93, 2) * 2000;
   
   return Math.round(pregnancyVem);
 }
@@ -140,10 +141,10 @@ function calculateDveProduction(fpcm: number, proteinPercent: number = 3.4): num
 
 /**
  * Calculate DVE pregnancy surcharge
- * Fixed DVE_PREGNANCY_LATE for late pregnancy (after 190 days)
+ * Fixed DVE_PREGNANCY_LATE for late pregnancy (after PREGNANCY_EXTRA_REQUIREMENT_START days)
  */
 function calculateDvePregnancy(daysPregnant: number): number {
-  if (daysPregnant < 190) return 0;
+  if (daysPregnant < PREGNANCY_EXTRA_REQUIREMENT_START) return 0;
   return DVE_PREGNANCY_LATE;
 }
 

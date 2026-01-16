@@ -159,6 +159,7 @@ export const VOC_EARLY_LACTATION_REDUCTION = 0.90;
 
 /**
  * Minimum structure value per kg dry matter for healthy rumen function
+ * Below this value: risk of rumen acidosis
  * Source: CVB 2025, Table 6.1
  */
 export const SW_MINIMUM_PER_KG_DS = 0.9;
@@ -168,6 +169,144 @@ export const SW_MINIMUM_PER_KG_DS = 0.9;
  * Source: CVB 2025, Table 6.1
  */
 export const SW_OPTIMAL_PER_KG_DS = 1.0;
+
+/**
+ * Warning threshold for structure value (marginaal)
+ * Between this and SW_MINIMUM: adequate but not optimal
+ * Source: CVB 2025, Table 6.1
+ */
+export const SW_WARNING_THRESHOLD = 0.85;
+
+// ============================================
+// Coverage & Balance Thresholds
+// ============================================
+
+/**
+ * Full coverage threshold (100%)
+ * VEM/DVE supply meets or exceeds requirement
+ * Source: CVB 2025, Practical guidelines
+ */
+export const COVERAGE_FULL = 100;
+
+/**
+ * Warning threshold for VEM/DVE coverage
+ * Below 90%: significant deficit, production loss expected
+ * Source: CVB 2025, Practical guidelines
+ */
+export const COVERAGE_WARNING = 90;
+
+/**
+ * Excess threshold for VEM/DVE coverage
+ * Above 110%: potential waste, health risks (obesity)
+ * Source: CVB 2025, Practical guidelines
+ */
+export const COVERAGE_EXCESS = 110;
+
+/**
+ * MPR validation threshold for VEM/DVE coverage
+ * 95% is commonly used in practice for MPR validation
+ * Source: Industry standard (CRV, Qlip)
+ */
+export const COVERAGE_MPR_OK = 95;
+
+// ============================================
+// OEB (Onbestendig Eiwit Balans) Thresholds
+// ============================================
+
+/**
+ * Minimum acceptable OEB value
+ * OEB should be >= 0 for optimal rumen function
+ * Negative OEB means insufficient rumen-degradable protein
+ * Source: CVB 2025, Table 7.1
+ */
+export const OEB_MINIMUM = 0;
+
+/**
+ * Warning threshold for OEB deficit
+ * Between -50 and 0: slight deficit, acceptable short-term
+ * Below -50: significant deficit, reduce production
+ * Source: CVB 2025, Table 7.1
+ */
+export const OEB_WARNING_THRESHOLD = -50;
+
+/**
+ * Maximum recommended OEB value
+ * Above 500g: excess degradable protein, ureum in milk increases
+ * Source: CVB 2025, Table 7.1
+ */
+export const OEB_MAXIMUM_RECOMMENDED = 500;
+
+// ============================================
+// Pregnancy Thresholds
+// ============================================
+
+/**
+ * Days pregnant when extra nutritional requirements start
+ * Before 190 days: no additional VEM/DVE needed
+ * After 190 days: fetal growth accelerates
+ * Source: CVB 2025, Table 3.3
+ */
+export const PREGNANCY_EXTRA_REQUIREMENT_START = 190;
+
+/**
+ * Total gestation length for dairy cattle
+ * Source: CVB 2025
+ */
+export const GESTATION_LENGTH_DAYS = 280;
+
+// ============================================
+// Body Weight Limits
+// ============================================
+
+/**
+ * Minimum body weight for adult dairy cattle (kg)
+ * Used for input validation
+ * Source: Practical limits
+ */
+export const BODY_WEIGHT_MIN = 300;
+
+/**
+ * Maximum body weight for adult dairy cattle (kg)
+ * Used for input validation
+ * Source: Practical limits
+ */
+export const BODY_WEIGHT_MAX = 900;
+
+/**
+ * Default body weight for Holstein-Friesian (kg)
+ * Source: CVB 2025, Reference animal
+ */
+export const BODY_WEIGHT_DEFAULT_HF = 700;
+
+// ============================================
+// Ureum Thresholds (mg/100ml milk)
+// ============================================
+
+/**
+ * Minimum ureum level in milk
+ * Below this: protein deficiency in ration
+ * Source: CRV/Qlip guidelines
+ */
+export const UREUM_MIN = 15;
+
+/**
+ * Maximum ureum level in milk
+ * Above this: excess protein, environmental impact
+ * Source: CRV/Qlip guidelines
+ */
+export const UREUM_MAX = 30;
+
+/**
+ * Optimal ureum range lower bound
+ * Source: CRV/Qlip guidelines
+ */
+export const UREUM_OPTIMAL_MIN = 20;
+
+/**
+ * Optimal ureum range upper bound
+ * Source: CRV/Qlip guidelines
+ */
+export const UREUM_OPTIMAL_MAX = 25;
 
 // ============================================
 // Helper Functions
@@ -254,7 +393,76 @@ export const CVB_CONSTANTS = {
   VOC_HEIFER_FACTOR,
   VOC_EARLY_LACTATION_REDUCTION,
   
-  // SW
+  // SW Thresholds
   SW_MINIMUM_PER_KG_DS,
   SW_OPTIMAL_PER_KG_DS,
+  SW_WARNING_THRESHOLD,
+  
+  // Coverage Thresholds
+  COVERAGE_FULL,
+  COVERAGE_WARNING,
+  COVERAGE_EXCESS,
+  COVERAGE_MPR_OK,
+  
+  // OEB Thresholds
+  OEB_MINIMUM,
+  OEB_WARNING_THRESHOLD,
+  OEB_MAXIMUM_RECOMMENDED,
+  
+  // Pregnancy
+  PREGNANCY_EXTRA_REQUIREMENT_START,
+  GESTATION_LENGTH_DAYS,
+  
+  // Body Weight
+  BODY_WEIGHT_MIN,
+  BODY_WEIGHT_MAX,
+  BODY_WEIGHT_DEFAULT_HF,
+  
+  // Ureum
+  UREUM_MIN,
+  UREUM_MAX,
+  UREUM_OPTIMAL_MIN,
+  UREUM_OPTIMAL_MAX,
 } as const;
+
+// ============================================
+// Threshold Helper Functions
+// ============================================
+
+/**
+ * Determine status based on coverage percentage
+ */
+export function getCoverageStatus(coveragePercent: number): 'ok' | 'warning' | 'deficient' | 'excess' {
+  if (coveragePercent >= COVERAGE_EXCESS) return 'excess';
+  if (coveragePercent >= COVERAGE_FULL) return 'ok';
+  if (coveragePercent >= COVERAGE_WARNING) return 'warning';
+  return 'deficient';
+}
+
+/**
+ * Determine status based on OEB value
+ */
+export function getOebStatus(oebGrams: number): 'ok' | 'warning' | 'deficient' | 'excess' {
+  if (oebGrams > OEB_MAXIMUM_RECOMMENDED) return 'excess';
+  if (oebGrams >= OEB_MINIMUM) return 'ok';
+  if (oebGrams >= OEB_WARNING_THRESHOLD) return 'warning';
+  return 'deficient';
+}
+
+/**
+ * Determine status based on structure value
+ */
+export function getSwStatus(swPerKgDs: number): 'ok' | 'warning' | 'deficient' {
+  if (swPerKgDs >= SW_MINIMUM_PER_KG_DS) return 'ok';
+  if (swPerKgDs >= SW_WARNING_THRESHOLD) return 'warning';
+  return 'deficient';
+}
+
+/**
+ * Determine status based on ureum level
+ */
+export function getUreumStatus(ureumMgPer100ml: number): 'ok' | 'low' | 'high' {
+  if (ureumMgPer100ml < UREUM_MIN) return 'low';
+  if (ureumMgPer100ml > UREUM_MAX) return 'high';
+  return 'ok';
+}

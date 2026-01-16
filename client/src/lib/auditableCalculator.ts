@@ -33,6 +33,13 @@ import {
   FPCM_PROTEIN_COEFFICIENT,
   SW_MINIMUM_PER_KG_DS,
   calculateMetabolicWeight as calcMW,
+  // Threshold constants
+  COVERAGE_WARNING,
+  COVERAGE_FULL,
+  OEB_WARNING_THRESHOLD,
+  OEB_MINIMUM,
+  SW_WARNING_THRESHOLD,
+  PREGNANCY_EXTRA_REQUIREMENT_START,
 } from './cvbConstants';
 
 // ============================================================================
@@ -323,12 +330,13 @@ export function calculateVemProduction(fpcm: number): CalculationStep {
 
 export function calculateVemPregnancy(daysPregnant: number): CalculationStep {
   let vem = 0;
-  let calculation = 'Niet drachtig of < 190 dagen = 0';
+  let calculation = `Niet drachtig of < ${PREGNANCY_EXTRA_REQUIREMENT_START} dagen = 0`;
   
-  if (daysPregnant >= 190) {
-    const daysAfter190 = daysPregnant - 190;
-    vem = Math.pow(daysAfter190 / 93, 2) * 2000;
-    calculation = `((${daysPregnant} - 190) / 93)² × 2000 = ${round(vem)}`;
+  // PREGNANCY_EXTRA_REQUIREMENT_START = 190 days (from cvbConstants)
+  if (daysPregnant >= PREGNANCY_EXTRA_REQUIREMENT_START) {
+    const daysAfterThreshold = daysPregnant - PREGNANCY_EXTRA_REQUIREMENT_START;
+    vem = Math.pow(daysAfterThreshold / 93, 2) * 2000;
+    calculation = `((${daysPregnant} - ${PREGNANCY_EXTRA_REQUIREMENT_START}) / 93)² × 2000 = ${round(vem)}`;
   }
   
   return createStep(
@@ -946,12 +954,14 @@ export function calculateAuditableRation(inputs: AuditableCalculationInputs): Au
   
   const vocUtilization = vocResult.vocKgDs.result > 0 ? (totalVw / vocResult.vocTotal.result) * 100 : 0;
   
-  // Determine statuses
+  // Determine statuses using centralized thresholds from cvbConstants
+  // COVERAGE_FULL = 100%, COVERAGE_WARNING = 90%
   const vemStatus: 'ok' | 'warning' | 'deficient' = 
-    vemCoverage >= 100 ? 'ok' : vemCoverage >= 90 ? 'warning' : 'deficient';
+    vemCoverage >= COVERAGE_FULL ? 'ok' : vemCoverage >= COVERAGE_WARNING ? 'warning' : 'deficient';
   const dveStatus: 'ok' | 'warning' | 'deficient' = 
-    dveCoverage >= 100 ? 'ok' : dveCoverage >= 90 ? 'warning' : 'deficient';
-  const swStatus = swPerKgDs >= 1.0 ? 'OK' : swPerKgDs >= 0.85 ? 'Marginaal' : 'Onvoldoende';
+    dveCoverage >= COVERAGE_FULL ? 'ok' : dveCoverage >= COVERAGE_WARNING ? 'warning' : 'deficient';
+  // SW_MINIMUM_PER_KG_DS = 0.9, SW_WARNING_THRESHOLD = 0.85
+  const swStatus = swPerKgDs >= SW_MINIMUM_PER_KG_DS ? 'OK' : swPerKgDs >= SW_WARNING_THRESHOLD ? 'Marginaal' : 'Onvoldoende';
   
   return {
     timestamp: new Date().toISOString(),
@@ -1030,7 +1040,8 @@ export function calculateAuditableRation(inputs: AuditableCalculationInputs): Au
         supply: round(totalOeb),
         balance: round(totalOeb),
         balancePercent: totalOeb >= 0 ? 100 : 0,
-        status: totalOeb >= 0 ? 'ok' : totalOeb >= -50 ? 'warning' : 'deficient',
+        // OEB_MINIMUM = 0, OEB_WARNING_THRESHOLD = -50 (from cvbConstants)
+        status: totalOeb >= OEB_MINIMUM ? 'ok' : totalOeb >= OEB_WARNING_THRESHOLD ? 'warning' : 'deficient',
         unit: 'gram',
         calculation: totalOebStep,
       },

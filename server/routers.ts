@@ -2,7 +2,7 @@ import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
-import { getAllAnimalProfiles, getAnimalProfileById, getAllFeeds, getFeedByName, getDefaultRationsForProfile, getActiveFeeds, getFeedsByCategory } from "./db";
+import { getAllAnimalProfiles, getAnimalProfileById, getAllFeeds, getFeedByName, getDefaultRationsForProfile, getActiveFeeds, getFeedsByCategory, updateFeedPrice } from "./db";
 import { uploadPdfForProcessing, parseLabReportPdf } from "./pdfParser";
 import { z } from "zod";
 
@@ -160,6 +160,12 @@ export const appRouter = router({
           sortOrder: feed.sort_order,
           createdAt: feed.created_at,
         };
+      }),
+    updatePrice: publicProcedure
+      .input(z.object({ feedId: z.number(), pricePerTon: z.number() }))
+      .mutation(async ({ input }) => {
+        const success = await updateFeedPrice(input.feedId, input.pricePerTon);
+        return { success };
       }),
   }),
 

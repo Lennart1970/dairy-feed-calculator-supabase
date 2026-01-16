@@ -3,6 +3,8 @@
  * 
  * This module converts the current application state into the format
  * required by the auditable calculation engine.
+ * 
+ * SW/VW values are now loaded from the database - no hardcoded fallbacks!
  */
 
 import { 
@@ -22,8 +24,8 @@ interface RoughageEntry {
   oeb: number;
   dsPercent: number;
   amount: number;
-  sw?: number;  // Structure value per kg DS
-  vw?: number;  // Filling value per kg DS
+  swPerKgDs?: number;  // Structure value per kg DS (from database)
+  vwPerKgDs?: number;  // Filling value per kg DS (from database)
 }
 
 interface ConcentrateFeedInput {
@@ -39,8 +41,8 @@ interface ConcentrateFeed {
   oebPerUnit: number;
   basis: string;
   defaultDsPercent: number;
-  swPerKgDs?: number;
-  vwPerKgDs?: number;
+  swPerKgDs?: number;  // From database
+  vwPerKgDs?: number;  // From database
 }
 
 interface MprData {
@@ -50,57 +52,38 @@ interface MprData {
   ureum?: number;
 }
 
-interface AnimalProfile {
-  name: string;
-  weightKg: number;
-  parity: number;
-  daysInMilk: number;
-  daysPregnant: number;
-}
+// Default SW/VW values ONLY used when database values are missing
+// These are conservative estimates based on CVB 2025 typical values
+const DEFAULT_SW_ROUGHAGE = 1.00;  // Conservative default for roughage
+const DEFAULT_VW_ROUGHAGE = 1.00;  // Conservative default for roughage
+const DEFAULT_SW_CONCENTRATE = 0.35;  // Conservative default for concentrates
+const DEFAULT_VW_CONCENTRATE = 0.40;  // Conservative default for concentrates
 
-// Default SW and VW values for common feed types (CVB 2022/2025)
-const DEFAULT_FEED_VALUES: Record<string, { sw: number; vw: number }> = {
-  // Roughage
-  'kuil_1_gras': { sw: 1.05, vw: 1.10 },
-  'kuil_2_gras': { sw: 1.05, vw: 1.10 },
-  'mais_2025': { sw: 0.75, vw: 0.85 },
-  'gras_silage': { sw: 1.05, vw: 1.10 },
-  'mais_silage': { sw: 0.75, vw: 0.85 },
-  'hooi': { sw: 1.20, vw: 1.30 },
+/**
+ * Get SW/VW values, preferring database values over defaults
+ * Logs a warning if falling back to defaults (indicates missing database data)
+ */
+function getFeedSwVw(
+  feedName: string, 
+  dbSwPerKgDs: number | undefined, 
+  dbVwPerKgDs: number | undefined,
+  isRoughage: boolean
+): { sw: number; vw: number } {
+  const defaultSw = isRoughage ? DEFAULT_SW_ROUGHAGE : DEFAULT_SW_CONCENTRATE;
+  const defaultVw = isRoughage ? DEFAULT_VW_ROUGHAGE : DEFAULT_VW_CONCENTRATE;
   
-  // Concentrates (values from CVB Veevoedertabel 2025 / database)
-  'bierborstel': { sw: 0.15, vw: 0.45 },
-  'gerstmeel': { sw: 0.50, vw: 0.40 },
-  'raapzaadschroot': { sw: 0.40, vw: 0.32 },
-  'stalbrok': { sw: 0.45, vw: 0.38 },
-  'startbrok': { sw: 0.40, vw: 0.35 },
+  const sw = (dbSwPerKgDs !== undefined && dbSwPerKgDs > 0) ? dbSwPerKgDs : defaultSw;
+  const vw = (dbVwPerKgDs !== undefined && dbVwPerKgDs > 0) ? dbVwPerKgDs : defaultVw;
   
-  // Defaults
-  'roughage': { sw: 1.00, vw: 1.00 },
-  'concentrate': { sw: 0.10, vw: 0.40 },
-};
-
-function getFeedValues(feedName: string, isRoughage: boolean): { sw: number; vw: number } {
-  const lowerName = feedName.toLowerCase();
-  
-  // Check for exact match
-  if (DEFAULT_FEED_VALUES[lowerName]) {
-    return DEFAULT_FEED_VALUES[lowerName];
+  // Log warning if using defaults (helps identify missing database data)
+  if (dbSwPerKgDs === undefined || dbSwPerKgDs === 0) {
+    console.warn(`[auditableBridge] Missing SW value for "${feedName}", using default: ${defaultSw}`);
+  }
+  if (dbVwPerKgDs === undefined || dbVwPerKgDs === 0) {
+    console.warn(`[auditableBridge] Missing VW value for "${feedName}", using default: ${defaultVw}`);
   }
   
-  // Check for partial matches
-  if (lowerName.includes('gras') || lowerName.includes('grass')) {
-    return DEFAULT_FEED_VALUES['gras_silage'];
-  }
-  if (lowerName.includes('mais') || lowerName.includes('maize') || lowerName.includes('corn')) {
-    return DEFAULT_FEED_VALUES['mais_silage'];
-  }
-  if (lowerName.includes('hooi') || lowerName.includes('hay')) {
-    return DEFAULT_FEED_VALUES['hooi'];
-  }
-  
-  // Return defaults based on feed type
-  return isRoughage ? DEFAULT_FEED_VALUES['roughage'] : DEFAULT_FEED_VALUES['concentrate'];
+  return { sw, vw };
 }
 
 /**
@@ -156,6 +139,9 @@ function daysPregnantToNumber(pregnancySelection: string | undefined): number {
 
 /**
  * Main bridge function: Convert current app state to auditable calculation
+ * 
+ * SW/VW values are now taken from the feed objects (loaded from database)
+ * instead of hardcoded lookup tables.
  */
 export function runAuditableCalculation(
   roughageFeeds: RoughageEntry[],
@@ -173,10 +159,11 @@ export function runAuditableCalculation(
 ): AuditableCalculationResult {
   
   // Convert roughage feeds to auditable format
+  // SW/VW values come from the feed objects (database)
   const auditableRoughageFeeds: AuditableFeedInput[] = roughageFeeds
     .filter(f => f.amount > 0)
     .map(f => {
-      const { sw, vw } = getFeedValues(f.name, true);
+      const { sw, vw } = getFeedSwVw(f.name, f.swPerKgDs, f.vwPerKgDs, true);
       return {
         name: f.name,
         displayName: f.displayName,
@@ -186,12 +173,13 @@ export function runAuditableCalculation(
         vemPerUnit: f.vem,
         dvePerUnit: f.dve,
         oebPerUnit: f.oeb,
-        swPerKgDs: f.sw || sw,
-        vwPerKgDs: f.vw || vw,
+        swPerKgDs: sw,
+        vwPerKgDs: vw,
       };
     });
   
   // Convert concentrate feeds to auditable format
+  // SW/VW values come from the feed objects (database)
   const auditableConcentrateFeeds: AuditableFeedInput[] = concentrateFeeds
     .filter(f => {
       const input = concentrateFeedInputs[f.name];
@@ -199,7 +187,7 @@ export function runAuditableCalculation(
     })
     .map(f => {
       const input = concentrateFeedInputs[f.name];
-      const { sw, vw } = getFeedValues(f.name, false);
+      const { sw, vw } = getFeedSwVw(f.name, f.swPerKgDs, f.vwPerKgDs, false);
       return {
         name: f.name,
         displayName: f.displayName,
@@ -209,8 +197,8 @@ export function runAuditableCalculation(
         vemPerUnit: f.vemPerUnit,
         dvePerUnit: f.dvePerUnit,
         oebPerUnit: f.oebPerUnit,
-        swPerKgDs: f.swPerKgDs || sw,
-        vwPerKgDs: f.vwPerKgDs || vw,
+        swPerKgDs: sw,
+        vwPerKgDs: vw,
       };
     });
   

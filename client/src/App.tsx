@@ -8,6 +8,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
 import Sources from "./pages/Sources";
+import FeedManagement from "./pages/FeedManagement";
 
 function Router() {
   const [location] = useLocation();
@@ -57,6 +58,8 @@ function Router() {
       <Route path={"/"} component={Home} />
       <Route path={"/bronnen"} component={Sources} />
       <Route path={"/sources"} component={Sources} />
+      <Route path={"/beheer"} component={FeedManagement} />
+      <Route path={"/feeds"} component={FeedManagement} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />

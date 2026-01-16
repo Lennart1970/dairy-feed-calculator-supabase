@@ -79,8 +79,9 @@ interface RoughageEntry {
   amount: number;
 }
 
-// Default roughage feeds with CVB values
-const defaultRoughageFeeds: RoughageEntry[] = [
+// Default roughage feeds are now loaded from database
+// This is a fallback in case database is not available
+const FALLBACK_ROUGHAGE_FEEDS: RoughageEntry[] = [
   { id: "kuil_1_gras", name: "kuil_1_gras", displayName: "Kuil 1 gras", vem: 951, dve: 76, oeb: 28, dsPercent: 41, amount: 5.3 },
   { id: "kuil_2_gras", name: "kuil_2_gras", displayName: "Kuil 2 gras", vem: 864, dve: 63, oeb: 5, dsPercent: 40, amount: 2.7 },
   { id: "mais_2025", name: "mais_2025", displayName: "Maïs 2025", vem: 987, dve: 52, oeb: -42, dsPercent: 35, amount: 8.0 },
@@ -275,11 +276,17 @@ export default function Home() {
   // Fetch feeds data from database
   const { data: feedsData } = trpc.feeds.list.useQuery();
   
-  // Derive concentrate feeds from database (filter out roughage)
+  // Fetch default rations for the selected profile
+  const { data: defaultRationsData } = trpc.profileRations.getForProfile.useQuery(
+    { profileId: selectedProfile?.id || 1 },
+    { enabled: !!selectedProfile?.id }
+  );
+  
+  // Derive concentrate feeds from database (filter by category or name pattern)
   const concentrateFeeds = useMemo(() => {
     if (!feedsData) return [];
     return feedsData
-      .filter(feed => !feed.name.includes('gras') && !feed.name.includes('mais'))
+      .filter(feed => feed.category !== 'roughage' && !feed.name.includes('gras') && !feed.name.includes('mais'))
       .map(f => ({
         name: f.name,
         displayName: f.displayName,
@@ -291,8 +298,42 @@ export default function Home() {
       }));
   }, [feedsData]);
   
-  // Roughage state
-  const [roughageFeeds, setRoughageFeeds] = useState<RoughageEntry[]>(defaultRoughageFeeds);
+  // Derive roughage feeds from database
+  const databaseRoughageFeeds = useMemo(() => {
+    if (!feedsData) return null;
+    const roughageFromDb = feedsData
+      .filter(feed => feed.category === 'roughage' || feed.name.includes('gras') || feed.name.includes('mais'))
+      .map(f => {
+        // Find default amount from profile rations if available
+        const defaultRation = defaultRationsData?.find(r => r.feedId === f.id);
+        return {
+          id: f.name,
+          name: f.name,
+          displayName: f.displayName,
+          vem: f.vemPerUnit,
+          dve: f.dvePerUnit,
+          oeb: f.oebPerUnit,
+          dsPercent: f.defaultDsPercent,
+          amount: defaultRation?.defaultAmount || 0,
+          swPerKgDs: f.swPerKgDs,
+          vwPerKgDs: f.vwPerKgDs,
+          pricePerTon: f.pricePerTon,
+        };
+      });
+    return roughageFromDb.length > 0 ? roughageFromDb : null;
+  }, [feedsData, defaultRationsData]);
+  
+  // Roughage state - initialize with database feeds when available
+  const [roughageFeeds, setRoughageFeeds] = useState<RoughageEntry[]>(FALLBACK_ROUGHAGE_FEEDS);
+  const [hasInitializedFromDb, setHasInitializedFromDb] = useState(false);
+  
+  // Update roughage feeds when database data becomes available
+  useEffect(() => {
+    if (databaseRoughageFeeds && !hasInitializedFromDb) {
+      setRoughageFeeds(databaseRoughageFeeds);
+      setHasInitializedFromDb(true);
+    }
+  }, [databaseRoughageFeeds, hasInitializedFromDb]);
   const [isGrazing, setIsGrazing] = useState(false);
   const [showUploadForm, setShowUploadForm] = useState(false);
   const [nextFeedId, setNextFeedId] = useState(4); // Start after default feeds
@@ -766,13 +807,23 @@ export default function Home() {
             <p className="text-xs">
               VEM = Voedereenheid Melk • DVE = Darm Verteerbaar Eiwit • OEB = Onbestendig Eiwit Balans
             </p>
-            <a 
-              href="/bronnen" 
-              className="inline-flex items-center gap-2 text-xs text-green-600 hover:text-green-700 font-medium transition-colors"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
-              Bekijk alle bronnen & referenties (50+ wetenschappelijke bronnen)
-            </a>
+            <div className="flex items-center justify-center gap-6">
+              <a 
+                href="/bronnen" 
+                className="inline-flex items-center gap-2 text-xs text-green-600 hover:text-green-700 font-medium transition-colors"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
+                Bronnen & Referenties
+              </a>
+              <span className="text-slate-300">|</span>
+              <a 
+                href="/beheer" 
+                className="inline-flex items-center gap-2 text-xs text-blue-600 hover:text-blue-700 font-medium transition-colors"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                Voermiddelen Beheer
+              </a>
+            </div>
           </div>
         </footer>
       </main>

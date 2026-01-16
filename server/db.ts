@@ -345,3 +345,32 @@ export async function getFeedsByCategory(category: string): Promise<Feed[]> {
     return [];
   }
 }
+
+
+// ============================================
+// Feed Update Functions
+// ============================================
+
+export async function updateFeedPrice(feedId: number, pricePerTon: number): Promise<boolean> {
+  const supabase = getSupabase();
+
+  try {
+    const { error } = await supabase
+      .from('feeds')
+      .update({ 
+        price_per_ton: pricePerTon,
+        // Note: price_updated_at would be updated here if the column exists
+      })
+      .eq('id', feedId);
+
+    if (error) {
+      console.error("[Database] Failed to update feed price:", error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error("[Database] Failed to update feed price:", error);
+    return false;
+  }
+}

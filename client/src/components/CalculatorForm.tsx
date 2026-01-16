@@ -80,10 +80,12 @@ function toFeedData(feed: {
   defaultDsPercent: number; 
   basis: string;
   swPerKgDs: string | number;
+  vwPerKgDs?: string | number | null;
 }): FeedData {
   return {
     ...feed,
     swPerKgDs: typeof feed.swPerKgDs === 'string' ? parseFloat(feed.swPerKgDs) : feed.swPerKgDs,
+    vwPerKgDs: feed.vwPerKgDs ? (typeof feed.vwPerKgDs === 'string' ? parseFloat(feed.vwPerKgDs) : feed.vwPerKgDs) : undefined,
   };
 }
 

@@ -323,9 +323,13 @@ export default function CalculatorForm({ onCalculationChange, onProfileChange, o
     return calculateDynamicRequirements(inputs);
   }, [selectedProfile, mprData, parity, daysInMilk, daysPregnant, isGrazing, weightKg]);
 
+  // Track if initial feed inputs have been set
+  const hasInitializedFeedInputs = useRef(false);
+
   // Initialize feed inputs and set default profile when data loads
   useEffect(() => {
-    if (feedsData && animalProfiles && animalProfiles.length > 0 && Object.keys(feedInputs).length === 0) {
+    if (feedsData && animalProfiles && animalProfiles.length > 0 && !hasInitializedFeedInputs.current) {
+      hasInitializedFeedInputs.current = true;
       // Default to Holstein-Fries - Hoogproductief (41kg melk) if available, otherwise first profile
       const defaultProfile = animalProfiles.find(p => p.name === "Holstein-Fries - Hoogproductief (41kg melk)") || animalProfiles[0];
       setSelectedProfileId(defaultProfile.id);
@@ -351,11 +355,28 @@ export default function CalculatorForm({ onCalculationChange, onProfileChange, o
       }
       setFeedInputs(initialInputs);
     }
-  }, [feedsData, animalProfiles, feedInputs, externalRoughageFeeds]);
+  }, [feedsData, animalProfiles, externalRoughageFeeds]);
 
   // Sync external roughage feed changes to feedInputs (for real-time SW updates)
+  // Use a ref to track previous external roughage feeds to avoid unnecessary updates
+  const prevExternalRoughageFeedsRef = useRef<typeof externalRoughageFeeds>(null);
+  
   useEffect(() => {
-    if (!externalRoughageFeeds || !feedsData || Object.keys(feedInputs).length === 0) return;
+    if (!externalRoughageFeeds || !feedsData || !hasInitializedFeedInputs.current) return;
+    
+    // Only update if external roughage feeds have actually changed
+    const prevFeeds = prevExternalRoughageFeedsRef.current;
+    const feedsChanged = !prevFeeds || 
+      prevFeeds.length !== externalRoughageFeeds.length ||
+      externalRoughageFeeds.some((feed, i) => 
+        !prevFeeds[i] || 
+        feed.amount !== prevFeeds[i].amount || 
+        feed.dsPercent !== prevFeeds[i].dsPercent
+      );
+    
+    if (!feedsChanged) return;
+    
+    prevExternalRoughageFeedsRef.current = externalRoughageFeeds;
     
     // Update feedInputs with current roughage amounts from external source
     setFeedInputs(prev => {
@@ -370,7 +391,7 @@ export default function CalculatorForm({ onCalculationChange, onProfileChange, o
       }
       return updated;
     });
-  }, [externalRoughageFeeds, feedsData, feedInputs]);
+  }, [externalRoughageFeeds, feedsData]);
 
   // Handle profile change
   const handleProfileChange = (profileId: number) => {

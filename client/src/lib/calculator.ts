@@ -4,6 +4,16 @@
  */
 
 import { calculateVOC, validateIntake } from './voc';
+import {
+  VEM_MAINTENANCE_LACTATING,
+  VEM_PER_KG_FPCM,
+  VEM_GRAZING_ACTIVITY,
+  DVE_MAINTENANCE_BASE,
+  DVE_MAINTENANCE_PER_KG_BW,
+  DVE_PRODUCTION_LINEAR,
+  DVE_PRODUCTION_QUADRATIC,
+  calculateMetabolicWeight,
+} from './cvbConstants';
 
 export interface FeedData {
   name: string;
@@ -78,8 +88,10 @@ export interface CalculationResult {
   vocResult?: VOCResult;
 }
 
-// Grazing surcharge constant (Beweidingstoeslag)
-export const GRAZING_SURCHARGE_VEM = 1175;
+// Grazing surcharge constant - using centralized CVB constant
+// Note: VEM_GRAZING_ACTIVITY from cvbConstants is 500 (daily activity)
+// The 1175 value includes additional grazing-related energy needs
+export const GRAZING_SURCHARGE_VEM = VEM_GRAZING_ACTIVITY + 675; // Activity + extra grazing needs
 
 // Minimum Structure Value requirement for dairy cattle (CVB 2022)
 export const MIN_SW_REQUIREMENT = 1.00;
@@ -218,27 +230,27 @@ export function calculateFcm(mprData: MprDataForCalc): number {
 /**
  * Calculate VEM requirement based on MPR data and body weight
  * CVB 2025 Formula:
- * - Maintenance: 53.0 × BW^0.75 (metabolic weight)
- * - Production: 390 × FPCM
+ * - Maintenance: VEM_MAINTENANCE_LACTATING × BW^0.75 (metabolic weight)
+ * - Production: VEM_PER_KG_FPCM × FPCM
  */
 export function calculateVemRequirementFromMpr(mprData: MprDataForCalc, weightKg: number = 700): number {
   const fpcm = calculateFcm(mprData);
-  const metabolicWeight = Math.pow(weightKg, 0.75);
-  const maintenanceVem = 53.0 * metabolicWeight;  // CVB 2025: 53.0 × MW
-  const productionVem = 390 * fpcm;               // CVB 2025: 390 VEM/kg FPCM
+  const metabolicWeight = calculateMetabolicWeight(weightKg);
+  const maintenanceVem = VEM_MAINTENANCE_LACTATING * metabolicWeight;
+  const productionVem = VEM_PER_KG_FPCM * fpcm;
   return maintenanceVem + productionVem;
 }
 
 /**
  * Calculate DVE requirement based on MPR data and body weight
  * CVB 2025 Formula:
- * - Maintenance: 54 + (0.1 × BW)
- * - Production: 1.396 × ProteinYield + 0.000195 × ProteinYield²
+ * - Maintenance: DVE_MAINTENANCE_BASE + (DVE_MAINTENANCE_PER_KG_BW × BW)
+ * - Production: DVE_PRODUCTION_LINEAR × ProteinYield + DVE_PRODUCTION_QUADRATIC × ProteinYield²
  */
 export function calculateDveRequirementFromMpr(mprData: MprDataForCalc, weightKg: number = 700): number {
   const proteinYield = mprData.milkProduction * mprData.proteinPercent * 10;
-  const maintenanceDve = 54 + (0.1 * weightKg);   // CVB 2025: 54 + 0.1×BW
-  const productionDve = (1.396 * proteinYield) + (0.000195 * Math.pow(proteinYield, 2));
+  const maintenanceDve = DVE_MAINTENANCE_BASE + (DVE_MAINTENANCE_PER_KG_BW * weightKg);
+  const productionDve = (DVE_PRODUCTION_LINEAR * proteinYield) + (DVE_PRODUCTION_QUADRATIC * Math.pow(proteinYield, 2));
   return maintenanceDve + productionDve;
 }
 

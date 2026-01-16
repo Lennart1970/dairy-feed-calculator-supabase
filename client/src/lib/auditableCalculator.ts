@@ -18,6 +18,23 @@
  * - CVB Voedernormen Melkvee 2007/2025
  */
 
+import {
+  VEM_MAINTENANCE_LACTATING,
+  VEM_MAINTENANCE_DRY,
+  VEM_PER_KG_FPCM,
+  VEM_GRAZING_ACTIVITY,
+  DVE_MAINTENANCE_BASE,
+  DVE_MAINTENANCE_PER_KG_BW,
+  DVE_PRODUCTION_LINEAR,
+  DVE_PRODUCTION_QUADRATIC,
+  DVE_PREGNANCY_LATE,
+  FPCM_BASE_COEFFICIENT,
+  FPCM_FAT_COEFFICIENT,
+  FPCM_PROTEIN_COEFFICIENT,
+  SW_MINIMUM_PER_KG_DS,
+  calculateMetabolicWeight as calcMW,
+} from './cvbConstants';
+
 // ============================================================================
 // TYPES - Audit Trail Structures
 // ============================================================================
@@ -143,41 +160,43 @@ export interface AuditableCalculationResult {
 }
 
 // ============================================================================
-// CONSTANTS - CVB 2025 Reference Values
+// CONSTANTS - Using centralized CVB constants + local extensions
 // ============================================================================
 
+// Local constants object that references centralized values
+// This allows the audit display to show constant names while using single source of truth
 const CVB_CONSTANTS = {
-  // VEM Maintenance (CVB 2025, Table 3.1)
-  VEM_MAINTENANCE_LACTATING: 53.0,    // VEM per kg metabolic weight for lactating cows
-  VEM_MAINTENANCE_DRY: 52.2,          // VEM per kg metabolic weight for dry cows
+  // VEM Maintenance (from cvbConstants.ts)
+  VEM_MAINTENANCE_LACTATING,
+  VEM_MAINTENANCE_DRY,
   
-  // VEM Production (CVB 2025, Table 3.2)
-  VEM_PER_KG_FPCM: 390,               // VEM per kg Fat-Protein Corrected Milk
+  // VEM Production (from cvbConstants.ts)
+  VEM_PER_KG_FPCM,
   
   // VEM Grazing (CVB 2025, Section 3.4)
   VEM_GRAZING_SURCHARGE_PERCENT: 0.30, // 30% surcharge for full-day grazing
-  VEM_GRAZING_FIXED: 1175,             // Alternative fixed surcharge
+  VEM_GRAZING_FIXED: VEM_GRAZING_ACTIVITY + 675, // Activity + extra grazing needs
   
-  // VEM Growth (CVB 2025, Table 3.3)
+  // VEM Growth (CVB 2025, Table 3.3) - specific to dynamic calculations
   VEM_GROWTH_PARITY1: 625,            // Growth surcharge for first lactation
   VEM_GROWTH_PARITY2: 325,            // Growth surcharge for second lactation
   
-  // DVE Maintenance (CVB 2025, Table 4.1)
-  DVE_MAINTENANCE_BASE: 54,           // Base DVE maintenance (grams)
-  DVE_MAINTENANCE_PER_KG_LW: 0.1,     // DVE per kg live weight (grams)
+  // DVE Maintenance (from cvbConstants.ts)
+  DVE_MAINTENANCE_BASE,
+  DVE_MAINTENANCE_PER_KG_LW: DVE_MAINTENANCE_PER_KG_BW,
   
-  // DVE Production (CVB 2025, Table 4.2)
-  DVE_PRODUCTION_LINEAR: 1.396,       // Linear coefficient
-  DVE_PRODUCTION_QUADRATIC: 0.000195, // Quadratic coefficient
+  // DVE Production (from cvbConstants.ts)
+  DVE_PRODUCTION_LINEAR,
+  DVE_PRODUCTION_QUADRATIC,
   
-  // DVE Growth (CVB 2025, Table 4.3)
+  // DVE Growth (CVB 2025, Table 4.3) - specific to dynamic calculations
   DVE_GROWTH_PARITY1: 64,             // Growth surcharge for first lactation (grams)
   DVE_GROWTH_PARITY2: 37,             // Growth surcharge for second lactation (grams)
   
-  // DVE Pregnancy (CVB 2025, Table 4.4)
-  DVE_PREGNANCY_SURCHARGE: 255,       // Late pregnancy surcharge (grams)
+  // DVE Pregnancy (from cvbConstants.ts)
+  DVE_PREGNANCY_SURCHARGE: DVE_PREGNANCY_LATE,
   
-  // VOC Coefficients (CVB 2007/2025)
+  // VOC Coefficients (CVB 2007/2025) - specific to VOC calculations
   VOC_ALPHA_0: 8.743,                 // Base intake capacity (heifer)
   VOC_ALPHA_1: 3.563,                 // Additional capacity for mature cow
   VOC_RHO_ALPHA: 1.140,               // Maturity growth speed
@@ -186,14 +205,17 @@ const CVB_CONSTANTS = {
   VOC_DELTA_220: 0.05529,             // Pregnancy reduction coefficient
   VOC_TO_KG_DS: 2.0,                  // Conversion factor VW to kg DS
   
-  // Structure Value (CVB 2022)
-  SW_MINIMUM: 1.00,                   // Minimum SW per kg DS
+  // Structure Value (from cvbConstants.ts)
+  SW_MINIMUM: SW_MINIMUM_PER_KG_DS,
   
-  // FPCM Calculation (CVB 2025)
-  FPCM_FAT_COEF: 0.116,
-  FPCM_PROTEIN_COEF: 0.06,
-  FPCM_CONSTANT: 0.337,
+  // FPCM Calculation (from cvbConstants.ts)
+  FPCM_FAT_COEF: FPCM_FAT_COEFFICIENT,
+  FPCM_PROTEIN_COEF: FPCM_PROTEIN_COEFFICIENT,
+  FPCM_CONSTANT: FPCM_BASE_COEFFICIENT,
 };
+
+// Use imported metabolic weight function for internal calculations
+const calcMetabolicWeight = calcMW;
 
 // ============================================================================
 // HELPER FUNCTIONS
@@ -248,8 +270,8 @@ export function calculateFPCM(
 // METABOLIC WEIGHT
 // ============================================================================
 
-export function calculateMetabolicWeight(weightKg: number): CalculationStep {
-  const mw = Math.pow(weightKg, 0.75);
+export function calculateMetabolicWeightStep(weightKg: number): CalculationStep {
+  const mw = calcMetabolicWeight(weightKg);
   
   return createStep(
     'Metabolisch Gewicht (MW)',

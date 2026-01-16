@@ -10,6 +10,17 @@
  * - Milk Production (FPCM)
  */
 
+import {
+  VEM_MAINTENANCE_LACTATING,
+  VEM_PER_KG_FPCM,
+  DVE_MAINTENANCE_BASE,
+  DVE_MAINTENANCE_PER_KG_BW,
+  DVE_PRODUCTION_LINEAR,
+  DVE_PRODUCTION_QUADRATIC,
+  DVE_PREGNANCY_LATE,
+  calculateMetabolicWeight,
+} from './cvbConstants';
+
 export interface DynamicRequirementInputs {
   weightKg: number;           // Live weight in kg
   parity: number;             // Lactation number (1 = first lactation, 2+ = mature)
@@ -39,33 +50,17 @@ export interface DynamicRequirementResult {
   };
 }
 
-// Constants from CVB 2025
+// Additional constants specific to dynamic calculations (not in base CVB constants)
 const BREED_FACTOR_HF = 1.0;                    // Holstein-Friesian breed coefficient
-const VEM_MAINTENANCE_LACTATING = 53.0;         // VEM maintenance per MW for lactating cows
-const VEM_PRODUCTION_PER_FPCM = 390;            // VEM per kg FPCM
 const VEM_GRAZING_SURCHARGE_PERCENT = 0.30;     // 30% surcharge for grazing (full day)
 const VEM_GROWTH_PARITY1 = 625;                 // Growth surcharge for first lactation (VEM)
 const VEM_GROWTH_PARITY2 = 325;                 // Growth surcharge for second lactation (VEM)
-
-const DVE_MAINTENANCE_BASE = 54;                // DVE maintenance base (grams)
-const DVE_MAINTENANCE_PER_KG_LW = 0.1;          // DVE maintenance per kg live weight (grams)
-const DVE_PRODUCTION_LINEAR = 1.396;            // Linear coefficient for DVE production
-const DVE_PRODUCTION_QUADRATIC = 0.000195;      // Quadratic coefficient for DVE production
 const DVE_GROWTH_PARITY1 = 64;                  // Growth surcharge for first lactation (grams)
 const DVE_GROWTH_PARITY2 = 37;                  // Growth surcharge for second lactation (grams)
-const DVE_PREGNANCY_SURCHARGE = 255;            // DVE surcharge for late pregnancy (grams)
-
-/**
- * Calculate metabolic weight (MW)
- * Formula: MW = LW^0.75
- */
-function calculateMetabolicWeight(weightKg: number): number {
-  return Math.pow(weightKg, 0.75);
-}
 
 /**
  * Calculate VEM maintenance requirement
- * Formula: 53.0 × MW × BreedFactor (for lactating HF cows)
+ * Formula: VEM_MAINTENANCE_LACTATING × MW × BreedFactor (for lactating HF cows)
  */
 function calculateVemMaintenance(weightKg: number): number {
   const mw = calculateMetabolicWeight(weightKg);
@@ -74,10 +69,10 @@ function calculateVemMaintenance(weightKg: number): number {
 
 /**
  * Calculate VEM production requirement
- * Formula: 390 × FPCM
+ * Formula: VEM_PER_KG_FPCM × FPCM
  */
 function calculateVemProduction(fpcm: number): number {
-  return VEM_PRODUCTION_PER_FPCM * fpcm;
+  return VEM_PER_KG_FPCM * fpcm;
 }
 
 /**
@@ -122,15 +117,15 @@ function calculateVemGrazing(maintenance: number, production: number, isGrazing:
 
 /**
  * Calculate DVE maintenance requirement
- * Formula: 54 + (0.1 × LW)
+ * Formula: DVE_MAINTENANCE_BASE + (DVE_MAINTENANCE_PER_KG_BW × LW)
  */
 function calculateDveMaintenance(weightKg: number): number {
-  return DVE_MAINTENANCE_BASE + (DVE_MAINTENANCE_PER_KG_LW * weightKg);
+  return DVE_MAINTENANCE_BASE + (DVE_MAINTENANCE_PER_KG_BW * weightKg);
 }
 
 /**
  * Calculate DVE production requirement
- * Formula: 1.396 × ProteinYield + 0.000195 × ProteinYield²
+ * Formula: DVE_PRODUCTION_LINEAR × ProteinYield + DVE_PRODUCTION_QUADRATIC × ProteinYield²
  * Where ProteinYield = Milk × Protein% × 10
  * 
  * Note: We use FPCM × 3.4% as approximation for protein yield
@@ -145,11 +140,11 @@ function calculateDveProduction(fpcm: number, proteinPercent: number = 3.4): num
 
 /**
  * Calculate DVE pregnancy surcharge
- * Fixed 255g for late pregnancy (after 190 days)
+ * Fixed DVE_PREGNANCY_LATE for late pregnancy (after 190 days)
  */
 function calculateDvePregnancy(daysPregnant: number): number {
   if (daysPregnant < 190) return 0;
-  return DVE_PREGNANCY_SURCHARGE;
+  return DVE_PREGNANCY_LATE;
 }
 
 /**

@@ -596,21 +596,25 @@ export function calculateFeedContribution(feed: FeedInput): FeedContribution {
     amountKgProduct = feed.dsPercent > 0 ? (feed.amountKg / feed.dsPercent) * 100 : 0;
     nutrientMultiplier = feed.amountKg;
   } else {
+    // User enters kg product - convert to DS
+    // CVB 2025: ALL nutritional values (VEM, DVE, OEB) are expressed per kg DS
+    // So we must always multiply by kg DS, not kg product
     amountKgProduct = feed.amountKg;
     amountKgDs = feed.amountKg * (feed.dsPercent / 100);
-    nutrientMultiplier = feed.amountKg;
+    nutrientMultiplier = amountKgDs; // FIXED: Use kg DS for nutrient calculations (CVB 2025)
   }
   
   // VEM contribution
   const vemContribution = nutrientMultiplier * feed.vemPerUnit;
+  // CVB 2025: All nutritional values are per kg DS, so we always show kg DS in the formula
   const vemStep = createStep(
     `VEM van ${feed.displayName}`,
-    feed.basis === 'per kg DS' ? 'VEM = kg DS × VEM/kg DS' : 'VEM = kg product × VEM/kg product',
+    'VEM = kg DS × VEM/kg DS',
     { 
-      [feed.basis === 'per kg DS' ? 'kg DS' : 'kg product']: round(nutrientMultiplier, 1),
-      'VEM per eenheid': feed.vemPerUnit
+      'kg DS': round(amountKgDs, 2),
+      'VEM/kg DS': feed.vemPerUnit
     },
-    `${round(nutrientMultiplier, 1)} × ${feed.vemPerUnit} = ${round(vemContribution)}`,
+    `${round(amountKgDs, 2)} × ${feed.vemPerUnit} = ${round(vemContribution)}`,
     vemContribution,
     'VEM',
     'CVB Veevoedertabel 2025'
@@ -620,12 +624,12 @@ export function calculateFeedContribution(feed: FeedInput): FeedContribution {
   const dveContribution = nutrientMultiplier * feed.dvePerUnit;
   const dveStep = createStep(
     `DVE van ${feed.displayName}`,
-    feed.basis === 'per kg DS' ? 'DVE = kg DS × DVE/kg DS' : 'DVE = kg product × DVE/kg product',
+    'DVE = kg DS × DVE/kg DS',
     { 
-      [feed.basis === 'per kg DS' ? 'kg DS' : 'kg product']: round(nutrientMultiplier, 1),
-      'DVE per eenheid': feed.dvePerUnit
+      'kg DS': round(amountKgDs, 2),
+      'DVE/kg DS': feed.dvePerUnit
     },
-    `${round(nutrientMultiplier, 1)} × ${feed.dvePerUnit} = ${round(dveContribution)}`,
+    `${round(amountKgDs, 2)} × ${feed.dvePerUnit} = ${round(dveContribution)}`,
     dveContribution,
     'gram',
     'CVB Veevoedertabel 2025'
@@ -635,12 +639,12 @@ export function calculateFeedContribution(feed: FeedInput): FeedContribution {
   const oebContribution = nutrientMultiplier * feed.oebPerUnit;
   const oebStep = createStep(
     `OEB van ${feed.displayName}`,
-    feed.basis === 'per kg DS' ? 'OEB = kg DS × OEB/kg DS' : 'OEB = kg product × OEB/kg product',
+    'OEB = kg DS × OEB/kg DS',
     { 
-      [feed.basis === 'per kg DS' ? 'kg DS' : 'kg product']: round(nutrientMultiplier, 1),
-      'OEB per eenheid': feed.oebPerUnit
+      'kg DS': round(amountKgDs, 2),
+      'OEB/kg DS': feed.oebPerUnit
     },
-    `${round(nutrientMultiplier, 1)} × ${feed.oebPerUnit} = ${round(oebContribution)}`,
+    `${round(amountKgDs, 2)} × ${feed.oebPerUnit} = ${round(oebContribution)}`,
     oebContribution,
     'gram',
     'CVB Veevoedertabel 2025'

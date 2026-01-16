@@ -103,8 +103,10 @@ export function calculateFeedSupply(
     nutrientMultiplier = input.amountKg;
   } else {
     // User enters kg product - convert to DS for intake tracking
+    // CVB 2025: ALL nutritional values (VEM, DVE, OEB) are expressed per kg DS
+    // So we must always multiply by kg DS, not kg product
     dryMatterKg = input.amountKg * (input.dsPercent / 100);
-    nutrientMultiplier = input.amountKg; // Nutrients are per kg product
+    nutrientMultiplier = dryMatterKg; // FIXED: Use kg DS for nutrient calculations (CVB 2025)
   }
   
   return {
@@ -214,23 +216,30 @@ export function calculateFcm(mprData: MprDataForCalc): number {
 }
 
 /**
- * Calculate VEM requirement based on MPR data
- * Formula: VEM = 442 × FCM + maintenance (5000 VEM for adult cow)
+ * Calculate VEM requirement based on MPR data and body weight
+ * CVB 2025 Formula:
+ * - Maintenance: 53.0 × BW^0.75 (metabolic weight)
+ * - Production: 390 × FPCM
  */
-export function calculateVemRequirementFromMpr(mprData: MprDataForCalc): number {
-  const fcm = calculateFcm(mprData);
-  const maintenanceVem = 5000;
-  return 442 * fcm + maintenanceVem;
+export function calculateVemRequirementFromMpr(mprData: MprDataForCalc, weightKg: number = 700): number {
+  const fpcm = calculateFcm(mprData);
+  const metabolicWeight = Math.pow(weightKg, 0.75);
+  const maintenanceVem = 53.0 * metabolicWeight;  // CVB 2025: 53.0 × MW
+  const productionVem = 390 * fpcm;               // CVB 2025: 390 VEM/kg FPCM
+  return maintenanceVem + productionVem;
 }
 
 /**
- * Calculate DVE requirement based on MPR data
- * Formula: DVE = 1.396 × (Milk × Protein% × 10) + maintenance (350g)
+ * Calculate DVE requirement based on MPR data and body weight
+ * CVB 2025 Formula:
+ * - Maintenance: 54 + (0.1 × BW)
+ * - Production: 1.396 × ProteinYield + 0.000195 × ProteinYield²
  */
-export function calculateDveRequirementFromMpr(mprData: MprDataForCalc): number {
-  const dveForMilk = 1.396 * (mprData.milkProduction * mprData.proteinPercent * 10);
-  const maintenanceDve = 350;
-  return dveForMilk + maintenanceDve;
+export function calculateDveRequirementFromMpr(mprData: MprDataForCalc, weightKg: number = 700): number {
+  const proteinYield = mprData.milkProduction * mprData.proteinPercent * 10;
+  const maintenanceDve = 54 + (0.1 * weightKg);   // CVB 2025: 54 + 0.1×BW
+  const productionDve = (1.396 * proteinYield) + (0.000195 * Math.pow(proteinYield, 2));
+  return maintenanceDve + productionDve;
 }
 
 /**
@@ -245,12 +254,13 @@ export function calculateNutrientBalance(
   const mineralReqs = calculateMineralRequirements(profile.weightKg);
   
   // Use FCM-based requirements if MPR data is available, otherwise use profile defaults
+  // CVB 2025: Requirements are calculated dynamically based on body weight and production
   const totalVemRequirement = mprData 
-    ? Math.round(calculateVemRequirementFromMpr(mprData))
+    ? Math.round(calculateVemRequirementFromMpr(mprData, profile.weightKg))
     : profile.vemTarget + (isGrazing ? GRAZING_SURCHARGE_VEM : 0);
   
   const totalDveRequirement = mprData
-    ? Math.round(calculateDveRequirementFromMpr(mprData))
+    ? Math.round(calculateDveRequirementFromMpr(mprData, profile.weightKg))
     : profile.dveTargetGrams;
   
   const balances: NutrientBalance[] = [

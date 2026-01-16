@@ -23,9 +23,20 @@ export const appRouter = router({
   animalProfiles: router({
     list: publicProcedure.query(async () => {
       const profiles = await getAllAnimalProfiles();
+      // Map snake_case database fields to camelCase for frontend
       return profiles.map(p => ({
-        ...p,
+        id: p.id,
+        name: p.name,
+        description: p.description,
+        notes: p.notes,
+        weightKg: p.weight_kg,
+        vemTarget: p.vem_target,
+        dveTargetGrams: p.dve_target_grams,
         maxBdsKg: typeof p.max_bds_kg === 'number' ? p.max_bds_kg : parseFloat(String(p.max_bds_kg)) || 0,
+        parity: p.parity,
+        daysInMilk: p.days_in_milk,
+        daysPregnant: p.days_pregnant,
+        createdAt: p.created_at,
       }));
     }),
     getById: publicProcedure
@@ -33,9 +44,20 @@ export const appRouter = router({
       .query(async ({ input }) => {
         const profile = await getAnimalProfileById(input.id);
         if (!profile) return null;
+        // Map snake_case database fields to camelCase for frontend
         return {
-          ...profile,
-          maxBdsKg: parseFloat(String(profile.maxBdsKg)),
+          id: profile.id,
+          name: profile.name,
+          description: profile.description,
+          notes: profile.notes,
+          weightKg: profile.weight_kg,
+          vemTarget: profile.vem_target,
+          dveTargetGrams: profile.dve_target_grams,
+          maxBdsKg: typeof profile.max_bds_kg === 'number' ? profile.max_bds_kg : parseFloat(String(profile.max_bds_kg)) || 0,
+          parity: profile.parity,
+          daysInMilk: profile.days_in_milk,
+          daysPregnant: profile.days_pregnant,
+          createdAt: profile.created_at,
         };
       }),
   }),
@@ -66,9 +88,19 @@ export const appRouter = router({
         const feed = await getFeedByName(input.name);
         if (!feed) return null;
         return {
-          ...feed,
-          caPerUnit: parseFloat(String(feed.caPerUnit)),
-          pPerUnit: parseFloat(String(feed.pPerUnit)),
+          id: feed.id,
+          name: feed.name,
+          displayName: feed.display_name,
+          basis: feed.basis,
+          vemPerUnit: feed.vem_per_unit,
+          dvePerUnit: feed.dve_per_unit,
+          oebPerUnit: feed.oeb_per_unit,
+          caPerUnit: typeof feed.ca_per_unit === 'number' ? feed.ca_per_unit : parseFloat(String(feed.ca_per_unit)) || 0,
+          pPerUnit: typeof feed.p_per_unit === 'number' ? feed.p_per_unit : parseFloat(String(feed.p_per_unit)) || 0,
+          defaultDsPercent: feed.default_ds_percent,
+          swPerKgDs: feed.sw_per_kg_ds,
+          vwPerKgDs: feed.vw_per_kg_ds,
+          createdAt: feed.created_at,
         };
       }),
   }),

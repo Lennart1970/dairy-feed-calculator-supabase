@@ -376,34 +376,21 @@ export default function CalculatorForm({ onCalculationChange, onProfileChange, o
         feed.dsPercent !== prevFeeds[i].dsPercent
       );
     
-    console.log('[DEBUG] Sync useEffect triggered', {
-      hasExternalFeeds: !!externalRoughageFeeds,
-      hasFeedsData: !!feedsData,
-      hasInitialized: hasInitializedFeedInputs.current,
-      feedsChanged,
-      externalFeeds: externalRoughageFeeds?.map(f => ({ name: f.name, amount: f.amount })),
-      prevFeeds: prevFeeds?.map(f => ({ name: f.name, amount: f.amount })),
-    });
-    
     if (!feedsChanged) return;
     
-    console.log('[DEBUG] Feeds changed, updating feedInputs');
     prevExternalRoughageFeedsRef.current = externalRoughageFeeds;
     
-    // Update feedInputs with current roughage amounts from external source
-    setFeedInputs(prev => {
-      console.log('[DEBUG] setFeedInputs called with prev:', prev);
+    // Update internal feed inputs directly for roughage feeds
+    // Use setInternalFeedInputs directly to avoid wrapper complexity
+    setInternalFeedInputs(prev => {
       const updated = { ...prev };
       for (const externalFeed of externalRoughageFeeds) {
-        console.log('[DEBUG] Checking feed:', externalFeed.name, 'exists:', !!updated[externalFeed.name]);
-        if (updated[externalFeed.name]) {
-          updated[externalFeed.name] = {
-            amountKg: externalFeed.amount,
-            dsPercent: externalFeed.dsPercent,
-          };
-        }
+        // Always update roughage feeds from external source
+        updated[externalFeed.name] = {
+          amountKg: externalFeed.amount,
+          dsPercent: externalFeed.dsPercent,
+        };
       }
-      console.log('[DEBUG] Updated feedInputs:', updated);
       return updated;
     });
   }, [externalRoughageFeeds, feedsData]);

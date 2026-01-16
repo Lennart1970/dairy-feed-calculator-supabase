@@ -374,3 +374,465 @@ export async function updateFeedPrice(feedId: number, pricePerTon: number): Prom
     return false;
   }
 }
+
+
+// ============================================
+// Farm Management Types
+// ============================================
+
+export interface Farm {
+  id: number;
+  name: string;
+  owner_user_id: string | null;
+  herd_size: number;
+  milk_price_per_kg: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface HerdGroup {
+  id: number;
+  farm_id: number;
+  name: string;
+  cow_count: number;
+  life_stage: string;
+  avg_parity: string;
+  avg_weight_kg: string;
+  avg_days_in_milk: number;
+  avg_days_pregnant: number;
+  grazing_type: string;
+  avg_milk_yield_kg: string;
+  avg_fat_percent: string;
+  avg_protein_percent: string;
+  fpcm_daily: string | null;
+  vem_target: number | null;
+  dve_target: number | null;
+  voc_limit: string | null;
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface InventoryItem {
+  id: number;
+  farm_id: number;
+  feed_id: number;
+  current_stock_kg: string;
+  silo_capacity_kg: string | null;
+  minimum_stock_kg: string;
+  daily_usage_rate_kg: string;
+  last_delivery_date: string | null;
+  last_delivery_kg: string | null;
+  updated_at: string;
+  // Joined feed data
+  feed?: Feed;
+}
+
+export interface GroupRation {
+  id: number;
+  group_id: number;
+  feed_id: number;
+  amount_kg_ds: string;
+  feeding_method: string;
+  load_order: number;
+  created_at: string;
+  updated_at: string;
+  // Joined feed data
+  feed?: Feed;
+}
+
+// ============================================
+// Farm Queries
+// ============================================
+
+export async function getFarm(farmId: number = 1): Promise<Farm | undefined> {
+  const supabase = getSupabase();
+
+  try {
+    const { data, error } = await supabase
+      .from('farms')
+      .select('*')
+      .eq('id', farmId)
+      .single();
+
+    if (error || !data) {
+      return undefined;
+    }
+
+    return data;
+  } catch (error) {
+    console.error("[Database] Failed to get farm:", error);
+    return undefined;
+  }
+}
+
+export async function updateFarm(farmId: number, updates: Partial<Farm>): Promise<boolean> {
+  const supabase = getSupabase();
+
+  try {
+    const { error } = await supabase
+      .from('farms')
+      .update({
+        ...updates,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', farmId);
+
+    if (error) {
+      console.error("[Database] Failed to update farm:", error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error("[Database] Failed to update farm:", error);
+    return false;
+  }
+}
+
+// ============================================
+// Herd Group Queries
+// ============================================
+
+export async function getHerdGroups(farmId: number = 1): Promise<HerdGroup[]> {
+  const supabase = getSupabase();
+
+  try {
+    const { data, error } = await supabase
+      .from('herd_groups')
+      .select('*')
+      .eq('farm_id', farmId)
+      .eq('is_active', true)
+      .order('sort_order')
+      .order('name');
+
+    if (error) {
+      console.error("[Database] Failed to get herd groups:", error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error("[Database] Failed to get herd groups:", error);
+    return [];
+  }
+}
+
+export async function getHerdGroupById(groupId: number): Promise<HerdGroup | undefined> {
+  const supabase = getSupabase();
+
+  try {
+    const { data, error } = await supabase
+      .from('herd_groups')
+      .select('*')
+      .eq('id', groupId)
+      .single();
+
+    if (error || !data) {
+      return undefined;
+    }
+
+    return data;
+  } catch (error) {
+    console.error("[Database] Failed to get herd group:", error);
+    return undefined;
+  }
+}
+
+export async function createHerdGroup(group: Omit<HerdGroup, 'id' | 'created_at' | 'updated_at'>): Promise<HerdGroup | undefined> {
+  const supabase = getSupabase();
+
+  try {
+    const { data, error } = await supabase
+      .from('herd_groups')
+      .insert(group)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("[Database] Failed to create herd group:", error);
+      return undefined;
+    }
+
+    return data;
+  } catch (error) {
+    console.error("[Database] Failed to create herd group:", error);
+    return undefined;
+  }
+}
+
+export async function updateHerdGroup(groupId: number, updates: Partial<HerdGroup>): Promise<boolean> {
+  const supabase = getSupabase();
+
+  try {
+    const { error } = await supabase
+      .from('herd_groups')
+      .update({
+        ...updates,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', groupId);
+
+    if (error) {
+      console.error("[Database] Failed to update herd group:", error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error("[Database] Failed to update herd group:", error);
+    return false;
+  }
+}
+
+export async function deleteHerdGroup(groupId: number): Promise<boolean> {
+  const supabase = getSupabase();
+
+  try {
+    // Soft delete by setting is_active to false
+    const { error } = await supabase
+      .from('herd_groups')
+      .update({ is_active: false, updated_at: new Date().toISOString() })
+      .eq('id', groupId);
+
+    if (error) {
+      console.error("[Database] Failed to delete herd group:", error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error("[Database] Failed to delete herd group:", error);
+    return false;
+  }
+}
+
+// ============================================
+// Inventory Queries
+// ============================================
+
+export async function getInventory(farmId: number = 1): Promise<InventoryItem[]> {
+  const supabase = getSupabase();
+
+  try {
+    const { data, error } = await supabase
+      .from('inventory_tracking')
+      .select(`
+        *,
+        feed:feeds(*)
+      `)
+      .eq('farm_id', farmId)
+      .order('id');
+
+    if (error) {
+      console.error("[Database] Failed to get inventory:", error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error("[Database] Failed to get inventory:", error);
+    return [];
+  }
+}
+
+export async function updateInventoryStock(farmId: number, feedId: number, currentStockKg: number): Promise<boolean> {
+  const supabase = getSupabase();
+
+  try {
+    const { error } = await supabase
+      .from('inventory_tracking')
+      .update({
+        current_stock_kg: currentStockKg,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('farm_id', farmId)
+      .eq('feed_id', feedId);
+
+    if (error) {
+      console.error("[Database] Failed to update inventory stock:", error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error("[Database] Failed to update inventory stock:", error);
+    return false;
+  }
+}
+
+export async function recordDelivery(
+  farmId: number, 
+  feedId: number, 
+  deliveryKg: number,
+  deliveryDate: string = new Date().toISOString().split('T')[0]
+): Promise<boolean> {
+  const supabase = getSupabase();
+
+  try {
+    // First get current stock
+    const { data: current } = await supabase
+      .from('inventory_tracking')
+      .select('current_stock_kg')
+      .eq('farm_id', farmId)
+      .eq('feed_id', feedId)
+      .single();
+
+    const currentStock = current ? parseFloat(current.current_stock_kg) : 0;
+    const newStock = currentStock + deliveryKg;
+
+    const { error } = await supabase
+      .from('inventory_tracking')
+      .update({
+        current_stock_kg: newStock,
+        last_delivery_date: deliveryDate,
+        last_delivery_kg: deliveryKg,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('farm_id', farmId)
+      .eq('feed_id', feedId);
+
+    if (error) {
+      console.error("[Database] Failed to record delivery:", error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error("[Database] Failed to record delivery:", error);
+    return false;
+  }
+}
+
+export async function updateDailyUsageRate(farmId: number, feedId: number, dailyUsageKg: number): Promise<boolean> {
+  const supabase = getSupabase();
+
+  try {
+    const { error } = await supabase
+      .from('inventory_tracking')
+      .update({
+        daily_usage_rate_kg: dailyUsageKg,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('farm_id', farmId)
+      .eq('feed_id', feedId);
+
+    if (error) {
+      console.error("[Database] Failed to update daily usage rate:", error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error("[Database] Failed to update daily usage rate:", error);
+    return false;
+  }
+}
+
+// ============================================
+// Group Ration Queries
+// ============================================
+
+export async function getGroupRation(groupId: number): Promise<GroupRation[]> {
+  const supabase = getSupabase();
+
+  try {
+    const { data, error } = await supabase
+      .from('group_rations')
+      .select(`
+        *,
+        feed:feeds(*)
+      `)
+      .eq('group_id', groupId)
+      .order('load_order')
+      .order('id');
+
+    if (error) {
+      console.error("[Database] Failed to get group ration:", error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error("[Database] Failed to get group ration:", error);
+    return [];
+  }
+}
+
+export async function saveGroupRation(groupId: number, rations: Array<{ feed_id: number; amount_kg_ds: number; feeding_method?: string; load_order?: number }>): Promise<boolean> {
+  const supabase = getSupabase();
+
+  try {
+    // Delete existing rations for this group
+    await supabase
+      .from('group_rations')
+      .delete()
+      .eq('group_id', groupId);
+
+    // Insert new rations
+    if (rations.length > 0) {
+      const { error } = await supabase
+        .from('group_rations')
+        .insert(
+          rations.map((r, index) => ({
+            group_id: groupId,
+            feed_id: r.feed_id,
+            amount_kg_ds: r.amount_kg_ds,
+            feeding_method: r.feeding_method || 'mixer',
+            load_order: r.load_order ?? index,
+          }))
+        );
+
+      if (error) {
+        console.error("[Database] Failed to save group ration:", error);
+        return false;
+      }
+    }
+
+    return true;
+  } catch (error) {
+    console.error("[Database] Failed to save group ration:", error);
+    return false;
+  }
+}
+
+// ============================================
+// Aggregation Queries
+// ============================================
+
+export async function calculateFarmDailyUsage(farmId: number = 1): Promise<Map<number, number>> {
+  const supabase = getSupabase();
+  const usageMap = new Map<number, number>();
+
+  try {
+    // Get all active groups with their rations
+    const { data: groups } = await supabase
+      .from('herd_groups')
+      .select('id, cow_count')
+      .eq('farm_id', farmId)
+      .eq('is_active', true);
+
+    if (!groups) return usageMap;
+
+    for (const group of groups) {
+      const { data: rations } = await supabase
+        .from('group_rations')
+        .select('feed_id, amount_kg_ds')
+        .eq('group_id', group.id);
+
+      if (rations) {
+        for (const ration of rations) {
+          const dailyUsage = parseFloat(ration.amount_kg_ds) * group.cow_count;
+          const currentUsage = usageMap.get(ration.feed_id) || 0;
+          usageMap.set(ration.feed_id, currentUsage + dailyUsage);
+        }
+      }
+    }
+
+    return usageMap;
+  } catch (error) {
+    console.error("[Database] Failed to calculate farm daily usage:", error);
+    return usageMap;
+  }
+}

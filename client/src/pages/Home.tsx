@@ -9,6 +9,8 @@ import ExpertReport from "@/components/ExpertReport";
 import RoughageSummaryTable, { type RoughageFeed } from "@/components/RoughageSummaryTable";
 import DierprofielCard from "@/components/DierprofielCard";
 import BehoefteCard from "@/components/BehoefteCard";
+import GroupSelector, { type HerdGroup } from "@/components/GroupSelector";
+import SaveRationButton from "@/components/SaveRationButton";
 import { LabReportUpload, type ParsedFeedData } from "@/components/LabReportUpload";
 import SectionNav from "@/components/SectionNav";
 import { type CalculationResult, type FeedData, type FeedInput } from "@/lib/calculator";
@@ -240,6 +242,7 @@ export default function Home() {
   }, []);
   const [calculationResult, setCalculationResult] = useState<CalculationResult | null>(null);
   const [selectedProfileName, setSelectedProfileName] = useState<string | null>('Holstein-Fries - Hoogproductief (41kg melk)');
+  const [selectedGroup, setSelectedGroup] = useState<HerdGroup | null>(null);
   const [selectedProfile, setSelectedProfile] = useState<any | null>(null);
   const [dynamicRequirements, setDynamicRequirements] = useState<{ vemTotal: number; dveTotal: number } | null>(null);
   const [mprData, setMprData] = useState<MprData | null>(null);
@@ -514,6 +517,22 @@ export default function Home() {
           <div className="grid lg:grid-cols-[1fr,400px] gap-6">
             {/* Left Column: Scrollable sections */}
             <div className="space-y-8">
+                      {/* Group Selector - Choose which herd group to calculate for */}
+              <GroupSelector
+                selectedGroupId={selectedGroup?.id || null}
+                onGroupSelect={(group) => {
+                  setSelectedGroup(group);
+                  // Auto-populate MPR data from group if available
+                  if (group && group.lifeStage === 'lactating') {
+                    setMprData({
+                      milkYieldKg: group.avgMilkYieldKg,
+                      fatPercent: group.avgFatPercent,
+                      proteinPercent: group.avgProteinPercent,
+                    });
+                  }
+                }}
+              />
+              
                       {/* SECTION 1: Behoefte (MPR + Profiel) */}
               <div ref={behoefteRef} id="behoefte" className="scroll-mt-24">
                 <BehoefteCard
@@ -654,6 +673,42 @@ export default function Home() {
                         onFeedAmountChange={handleConcentrateFeedAmountChange}
                         onDsPercentChange={handleConcentrateFeedDsPercentChange}
                       />
+                    )}
+                    
+                    {/* Save Ration Button - only show when group is selected */}
+                    {selectedGroup && (
+                      <div className="flex justify-end">
+                        <SaveRationButton
+                          groupId={selectedGroup.id}
+                          groupName={selectedGroup.name}
+                          rations={[
+                            // Roughage feeds
+                            ...roughageFeeds.filter(f => f.amount > 0).map((f, idx) => {
+                              // Find feed ID from database
+                              const dbFeed = feedsData?.find(df => df.name === f.name);
+                              return {
+                                feedId: dbFeed?.id || idx + 1,
+                                amountKgDs: f.amount,
+                                feedingMethod: 'mixer',
+                                loadOrder: idx + 1,
+                              };
+                            }),
+                            // Concentrate feeds
+                            ...Object.entries(concentrateFeedInputs)
+                              .filter(([_, input]) => input.amountKg > 0)
+                              .map(([name, input], idx) => {
+                                const dbFeed = feedsData?.find(df => df.name === name);
+                                const dsKg = (input.amountKg * input.dsPercent) / 100;
+                                return {
+                                  feedId: dbFeed?.id || 100 + idx,
+                                  amountKgDs: dsKg,
+                                  feedingMethod: 'mixer',
+                                  loadOrder: roughageFeeds.filter(f => f.amount > 0).length + idx + 1,
+                                };
+                              }),
+                          ]}
+                        />
+                      </div>
                     )}
                   </div>
 

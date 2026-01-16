@@ -11,6 +11,8 @@ import Sources from "./pages/Sources";
 import FeedManagement from "./pages/FeedManagement";
 import FarmDashboard from "./pages/FarmDashboard";
 import HerdGroups from "./pages/HerdGroups";
+import Inventory from "./pages/Inventory";
+import LoadingList from "./pages/LoadingList";
 
 function Router() {
   const [location] = useLocation();
@@ -65,6 +67,8 @@ function Router() {
       {/* Farm Management Routes */}
       <Route path={"/dashboard"} component={FarmDashboard} />
       <Route path={"/groepen"} component={HerdGroups} />
+      <Route path={"/voorraad"} component={Inventory} />
+      <Route path={"/laadlijst"} component={LoadingList} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />

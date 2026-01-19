@@ -374,14 +374,36 @@ export default function Ruwvoerbalans() {
                       = {(vemSupply.maizeVem / 1000000).toFixed(1)} miljoen VEM
                     </span>
                   </div>
-                  <div className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                  
+                  {/* Grass Split Explanation */}
+                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="text-xs text-blue-800 mb-2 font-semibold">
+                      🌿 Gras Snede Verdeling (Professionele Methode):
+                    </div>
+                    <div className="text-xs text-blue-700 space-y-1">
+                      <div>• <strong>40%</strong> = Voorjaarskuil (1e Snede, Mei) - Hoge energie, lage structuur</div>
+                      <div>• <strong>60%</strong> = Zomer/Najaarskuil (2e+ Snede, Juli-Aug) - Lagere energie, hoge structuur</div>
+                      <div className="text-xs text-blue-600 mt-1 italic">Bron: ABZ Diervoeding, CVB Standards, ILVO research</div>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-center p-2 bg-green-50 rounded border border-green-200">
                     <span className="text-gray-700">
-                      Gras: {(vemSupply.grassKgDs / 1000).toFixed(1)} ton DS × {vemSupply.grassVemPerKg} VEM/kg
+                      Gras Voorjaar (40%): {(vemSupply.grassSpringKgDs / 1000).toFixed(1)} ton DS × {vemSupply.grassSpringVemPerKg} VEM/kg
                     </span>
-                    <span className="font-bold text-green-600">
-                      = {(vemSupply.grassVem / 1000000).toFixed(1)} miljoen VEM
+                    <span className="font-bold text-green-700">
+                      = {(vemSupply.grassSpringVem / 1000000).toFixed(1)} miljoen VEM
                     </span>
                   </div>
+                  <div className="flex justify-between items-center p-2 bg-green-50 rounded border border-green-200">
+                    <span className="text-gray-700">
+                      Gras Zomer (60%): {(vemSupply.grassSummerKgDs / 1000).toFixed(1)} ton DS × {vemSupply.grassSummerVemPerKg} VEM/kg
+                    </span>
+                    <span className="font-bold text-green-700">
+                      = {(vemSupply.grassSummerVem / 1000000).toFixed(1)} miljoen VEM
+                    </span>
+                  </div>
+                  
                   <div className="flex justify-between items-center p-3 bg-green-100 rounded-lg border-2 border-green-300 mt-3">
                     <span className="font-bold text-gray-800">Totale Jaarlijkse Voorraad:</span>
                     <span className="font-bold text-2xl text-green-700">

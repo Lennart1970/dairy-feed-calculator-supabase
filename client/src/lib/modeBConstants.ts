@@ -20,10 +20,22 @@ export const QUALITY_PRESETS = {
       sw: 1.65,      // Structure value (low) [Source 337]
     },
     grass: {
-      vem: 960,      // VEM/kg DS [Source 121]
+      vem: 960,      // VEM/kg DS [Source 121] - AVERAGE (not recommended)
       dve: 75,       // g/kg DS [Source 121]
       oeb: 30,       // g/kg DS [Source 30]
       sw: 2.80,      // Structure value [Source 121]
+    },
+    grassSpring: {  // 1st Cut (Voorjaarskuil) - May harvest [Source 589, 465]
+      vem: 980,      // High energy (supports high milk production)
+      dve: 80,       // High protein
+      oeb: 40,       // High OEB
+      sw: 2.69,      // Low structure (soft, fast digestion)
+    },
+    grassSummer: {  // 2nd+ Cuts (Zomer/Najaarskuil) - July-Aug [Source 589, 465]
+      vem: 900,      // Lower energy (more fibrous)
+      dve: 70,       // Lower protein
+      oeb: 20,       // Lower OEB
+      sw: 3.14,      // High structure (prevents acidosis)
     },
   },
   gemiddeld: {
@@ -39,6 +51,18 @@ export const QUALITY_PRESETS = {
       oeb: 20,
       sw: 2.60,
     },
+    grassSpring: {
+      vem: 940,
+      dve: 75,
+      oeb: 30,
+      sw: 2.50,
+    },
+    grassSummer: {
+      vem: 880,
+      dve: 65,
+      oeb: 15,
+      sw: 2.90,
+    },
   },
   sober: {
     maize: {
@@ -52,6 +76,18 @@ export const QUALITY_PRESETS = {
       dve: 65,
       oeb: 10,
       sw: 2.40,
+    },
+    grassSpring: {
+      vem: 900,
+      dve: 70,
+      oeb: 20,
+      sw: 2.30,
+    },
+    grassSummer: {
+      vem: 860,
+      dve: 60,
+      oeb: 5,
+      sw: 2.70,
     },
   },
 } as const;
@@ -314,41 +350,62 @@ export function calculateAnnualVemSupply(params: {
   yield_grass_ton_ds_ha: number;
   quality_level: QualityLevel;
   labResults?: Array<{
-    feedType: 'maize' | 'grass';
+    feedType: 'maize' | 'grass' | 'grassSpring' | 'grassSummer';
     vem: number;
   }>;
 }): {
   maizeVem: number;
+  grassSpringVem: number;
+  grassSummerVem: number;
   grassVem: number;
   totalVem: number;
   maizeKgDs: number;
+  grassSpringKgDs: number;
+  grassSummerKgDs: number;
   grassKgDs: number;
   maizeVemPerKg: number;
-  grassVemPerKg: number;
+  grassSpringVemPerKg: number;
+  grassSummerVemPerKg: number;
 } {
   // Physical volume (kg DS)
   const maizeKgDs = params.hectares_maize * params.yield_maize_ton_ds_ha * 1000;
-  const grassKgDs = params.hectares_grass * params.yield_grass_ton_ds_ha * 1000;
+  const grassKgDsTotal = params.hectares_grass * params.yield_grass_ton_ds_ha * 1000;
+
+  // Grass Cut Split (40% Spring / 60% Summer) [Source 46]
+  const SPRING_CUT_RATIO = 0.40;  // 1st Cut (Voorjaarskuil)
+  const SUMMER_CUT_RATIO = 0.60;  // 2nd+ Cuts (Zomer/Najaarskuil)
+  
+  const grassSpringKgDs = grassKgDsTotal * SPRING_CUT_RATIO;
+  const grassSummerKgDs = grassKgDsTotal * SUMMER_CUT_RATIO;
 
   // Nutritional quality (VEM/kg) - Use lab results if available, otherwise CVB defaults
   const labMaize = params.labResults?.find(r => r.feedType === 'maize');
-  const labGrass = params.labResults?.find(r => r.feedType === 'grass');
+  const labGrassSpring = params.labResults?.find(r => r.feedType === 'grassSpring');
+  const labGrassSummer = params.labResults?.find(r => r.feedType === 'grassSummer');
 
   const maizeVemPerKg = labMaize?.vem || QUALITY_PRESETS[params.quality_level].maize.vem;
-  const grassVemPerKg = labGrass?.vem || QUALITY_PRESETS[params.quality_level].grass.vem;
+  const grassSpringVemPerKg = labGrassSpring?.vem || QUALITY_PRESETS[params.quality_level].grassSpring.vem;
+  const grassSummerVemPerKg = labGrassSummer?.vem || QUALITY_PRESETS[params.quality_level].grassSummer.vem;
 
   // Total VEM = kg DS × VEM/kg [Source 475, 477]
   const maizeVem = maizeKgDs * maizeVemPerKg;
-  const grassVem = grassKgDs * grassVemPerKg;
+  const grassSpringVem = grassSpringKgDs * grassSpringVemPerKg;
+  const grassSummerVem = grassSummerKgDs * grassSummerVemPerKg;
+  const grassVem = grassSpringVem + grassSummerVem;
 
   return {
     maizeVem: Math.round(maizeVem),
+    grassSpringVem: Math.round(grassSpringVem),
+    grassSummerVem: Math.round(grassSummerVem),
     grassVem: Math.round(grassVem),
     totalVem: Math.round(maizeVem + grassVem),
     maizeKgDs: Math.round(maizeKgDs),
-    grassKgDs: Math.round(grassKgDs),
+    grassSpringKgDs: Math.round(grassSpringKgDs),
+    grassSummerKgDs: Math.round(grassSummerKgDs),
+    grassKgDs: Math.round(grassKgDsTotal),
     maizeVemPerKg,
-    grassVemPerKg,
+    grassSpringVemPerKg,
+    grassSummerVemPerKg,
   };
 }
 

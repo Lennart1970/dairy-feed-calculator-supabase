@@ -207,6 +207,84 @@ export default function HerdGroups() {
               {editingGroup ? `Groep Bewerken: ${editingGroup.name}` : 'Nieuwe Groep Aanmaken'}
             </h2>
             
+            {/* CVB 2025 Presets */}
+            {!editingGroup && (
+              <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <h3 className="text-sm font-semibold text-blue-900 mb-3">📚 CVB 2025 Standaard Profielen (Holstein Friesian)</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setFormData({
+                      name: 'Droogstaand',
+                      cowCount: 15,
+                      avgWeightKg: 725,
+                      avgMilkYieldKg: 0,
+                      avgFatPercent: 0,
+                      avgProteinPercent: 0,
+                      avgDaysInMilk: 0,
+                      lifeStage: 'dry',
+                    })}
+                    className="px-4 py-2 bg-white border-2 border-blue-300 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors text-sm font-medium"
+                  >
+                    🤰 Droogstaand<br/>
+                    <span className="text-xs">725 kg, 0 kg melk</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormData({
+                      name: 'Hoogproductief (Vers)',
+                      cowCount: 28,
+                      avgWeightKg: 645,
+                      avgMilkYieldKg: 41,
+                      avgFatPercent: 4.20,
+                      avgProteinPercent: 3.40,
+                      avgDaysInMilk: 50,
+                      lifeStage: 'lactating',
+                    })}
+                    className="px-4 py-2 bg-white border-2 border-blue-300 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors text-sm font-medium"
+                  >
+                    🔥 Hoogproductief<br/>
+                    <span className="text-xs">645 kg, 41 kg melk</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormData({
+                      name: 'Midproductief',
+                      cowCount: 28,
+                      avgWeightKg: 675,
+                      avgMilkYieldKg: 32.5,
+                      avgFatPercent: 4.40,
+                      avgProteinPercent: 3.55,
+                      avgDaysInMilk: 150,
+                      lifeStage: 'lactating',
+                    })}
+                    className="px-4 py-2 bg-white border-2 border-blue-300 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors text-sm font-medium"
+                  >
+                    📊 Midproductief<br/>
+                    <span className="text-xs">675 kg, 32.5 kg melk</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormData({
+                      name: 'Laagproductief (Laat)',
+                      cowCount: 29,
+                      avgWeightKg: 700,
+                      avgMilkYieldKg: 22,
+                      avgFatPercent: 4.60,
+                      avgProteinPercent: 3.70,
+                      avgDaysInMilk: 250,
+                      lifeStage: 'lactating',
+                    })}
+                    className="px-4 py-2 bg-white border-2 border-blue-300 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors text-sm font-medium"
+                  >
+                    📉 Laagproductief<br/>
+                    <span className="text-xs">700 kg, 22 kg melk</span>
+                  </button>
+                </div>
+                <p className="text-xs text-blue-700 mt-2">💡 Klik op een profiel om de standaardwaarden in te vullen. Je kunt deze daarna aanpassen.</p>
+              </div>
+            )}
+            
             <form onSubmit={handleSubmit}>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {/* Group Name */}

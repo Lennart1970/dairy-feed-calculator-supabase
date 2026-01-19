@@ -15,6 +15,7 @@ import Inventory from "./pages/Inventory";
 import LoadingList from "./pages/LoadingList";
 import Ruwvoerbalans from "./pages/Ruwvoerbalans";
 import Basisrantsoen from "./pages/Basisrantsoen";
+import RationAssignment from "./pages/RationAssignment";
 
 function Router() {
   const [location] = useLocation();
@@ -73,6 +74,7 @@ function Router() {
       <Route path={"/laadlijst"} component={LoadingList} />
       <Route path={"/ruwvoerbalans"} component={Ruwvoerbalans} />
       <Route path={"/basisrantsoen"} component={Basisrantsoen} />
+      <Route path={"/rantsoen-toewijzing"} component={RationAssignment} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />

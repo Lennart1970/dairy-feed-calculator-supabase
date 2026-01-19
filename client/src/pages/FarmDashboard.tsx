@@ -245,7 +245,7 @@ export default function FarmDashboard() {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           <Link href="/groepen">
             <a className="bg-green-100 rounded-xl shadow-lg p-6 hover:bg-green-200 transition-all transform hover:scale-105 border-2 border-green-300">
               <div className="flex items-center gap-4">
@@ -282,13 +282,13 @@ export default function FarmDashboard() {
             </a>
           </Link>
 
-          <Link href="/basisrantsoen">
-            <a className="bg-yellow-100 rounded-xl shadow-lg p-6 hover:bg-yellow-200 transition-all transform hover:scale-105 border-2 border-yellow-300">
+          <Link href="/rantsoen-toewijzing">
+            <a className="bg-indigo-100 rounded-xl shadow-lg p-6 hover:bg-indigo-200 transition-all transform hover:scale-105 border-2 border-indigo-300">
               <div className="flex items-center gap-4">
-                <span className="text-5xl">🌾</span>
+                <span className="text-5xl">🎯</span>
                 <div>
-                  <h3 className="text-xl font-bold text-gray-800">Basisrantsoen</h3>
-                  <p className="text-gray-600 text-sm font-medium">Ontwerp basisrantsoen</p>
+                  <h3 className="text-xl font-bold text-gray-800">Rantsoen Toewijzing</h3>
+                  <p className="text-gray-600 text-sm font-medium">Gap analyse & krachtvoer</p>
                 </div>
               </div>
             </a>

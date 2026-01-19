@@ -196,36 +196,36 @@ export default function FarmDashboard() {
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <Link href="/groepen">
-            <a className="bg-green-600 rounded-xl shadow-lg p-6 text-white hover:bg-green-700 transition-all transform hover:scale-105 border-2 border-green-700">
+            <a className="bg-green-100 rounded-xl shadow-lg p-6 hover:bg-green-200 transition-all transform hover:scale-105 border-2 border-green-300">
               <div className="flex items-center gap-4">
                 <span className="text-5xl">👥</span>
                 <div>
-                  <h3 className="text-xl font-bold drop-shadow-sm">Groepen Beheren</h3>
-                  <p className="text-white text-sm font-medium drop-shadow-sm">Koegroepen aanpassen</p>
+                  <h3 className="text-xl font-bold text-gray-800">Groepen Beheren</h3>
+                  <p className="text-gray-600 text-sm font-medium">Koegroepen aanpassen</p>
                 </div>
               </div>
             </a>
           </Link>
 
           <Link href="/voorraad">
-            <a className="bg-blue-600 rounded-xl shadow-lg p-6 text-white hover:bg-blue-700 transition-all transform hover:scale-105 border-2 border-blue-700">
+            <a className="bg-blue-100 rounded-xl shadow-lg p-6 hover:bg-blue-200 transition-all transform hover:scale-105 border-2 border-blue-300">
               <div className="flex items-center gap-4">
                 <span className="text-5xl">📦</span>
                 <div>
-                  <h3 className="text-xl font-bold drop-shadow-sm">Voorraad Beheren</h3>
-                  <p className="text-white text-sm font-medium drop-shadow-sm">Voorraden bijwerken</p>
+                  <h3 className="text-xl font-bold text-gray-800">Voorraad Beheren</h3>
+                  <p className="text-gray-600 text-sm font-medium">Voorraden bijwerken</p>
                 </div>
               </div>
             </a>
           </Link>
 
           <Link href="/laadlijst">
-            <a className="bg-orange-600 rounded-xl shadow-lg p-6 text-white hover:bg-orange-700 transition-all transform hover:scale-105 border-2 border-orange-700">
+            <a className="bg-orange-100 rounded-xl shadow-lg p-6 hover:bg-orange-200 transition-all transform hover:scale-105 border-2 border-orange-300">
               <div className="flex items-center gap-4">
                 <span className="text-5xl">📋</span>
                 <div>
-                  <h3 className="text-xl font-bold drop-shadow-sm">Laadlijst</h3>
-                  <p className="text-white text-sm font-medium drop-shadow-sm">Voermengwagen laden</p>
+                  <h3 className="text-xl font-bold text-gray-800">Laadlijst</h3>
+                  <p className="text-gray-600 text-sm font-medium">Voermengwagen laden</p>
                 </div>
               </div>
             </a>

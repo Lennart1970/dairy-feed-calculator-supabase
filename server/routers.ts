@@ -244,6 +244,13 @@ export const appRouter = router({
           ownerUserId: farm.owner_user_id,
           herdSize: farm.herd_size,
           milkPricePerKg: parseFloat(String(farm.milk_price_per_kg)),
+          youngStockJuniorCount: farm.young_stock_junior_count || 0,
+          youngStockSeniorCount: farm.young_stock_senior_count || 0,
+          hectaresMaize: farm.hectares_maize ? parseFloat(String(farm.hectares_maize)) : 8.0,
+          hectaresGrass: farm.hectares_grass ? parseFloat(String(farm.hectares_grass)) : 32.0,
+          yieldMaizeTonDsHa: farm.yield_maize_ton_ds_ha ? parseFloat(String(farm.yield_maize_ton_ds_ha)) : 12.0,
+          yieldGrassTonDsHa: farm.yield_grass_ton_ds_ha ? parseFloat(String(farm.yield_grass_ton_ds_ha)) : 11.0,
+          qualityLevel: farm.quality_level || 'topkwaliteit',
           createdAt: farm.created_at,
           updatedAt: farm.updated_at,
         };
@@ -254,12 +261,26 @@ export const appRouter = router({
         name: z.string().optional(),
         herdSize: z.number().optional(),
         milkPricePerKg: z.number().optional(),
+        youngStockJuniorCount: z.number().optional(),
+        youngStockSeniorCount: z.number().optional(),
+        hectaresMaize: z.number().optional(),
+        hectaresGrass: z.number().optional(),
+        yieldMaizeTonDsHa: z.number().optional(),
+        yieldGrassTonDsHa: z.number().optional(),
+        qualityLevel: z.string().optional(),
       }))
       .mutation(async ({ input }) => {
         const updates: Record<string, unknown> = {};
         if (input.name !== undefined) updates.name = input.name;
         if (input.herdSize !== undefined) updates.herd_size = input.herdSize;
         if (input.milkPricePerKg !== undefined) updates.milk_price_per_kg = input.milkPricePerKg;
+        if (input.youngStockJuniorCount !== undefined) updates.young_stock_junior_count = input.youngStockJuniorCount;
+        if (input.youngStockSeniorCount !== undefined) updates.young_stock_senior_count = input.youngStockSeniorCount;
+        if (input.hectaresMaize !== undefined) updates.hectares_maize = input.hectaresMaize;
+        if (input.hectaresGrass !== undefined) updates.hectares_grass = input.hectaresGrass;
+        if (input.yieldMaizeTonDsHa !== undefined) updates.yield_maize_ton_ds_ha = input.yieldMaizeTonDsHa;
+        if (input.yieldGrassTonDsHa !== undefined) updates.yield_grass_ton_ds_ha = input.yieldGrassTonDsHa;
+        if (input.qualityLevel !== undefined) updates.quality_level = input.qualityLevel;
         const success = await updateFarm(input.farmId, updates as any);
         return { success };
       }),

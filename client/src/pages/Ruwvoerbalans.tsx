@@ -7,6 +7,9 @@ import {
   calculateDeficit,
   calculateEmptyDate,
   recommendPurchase,
+  calculateAnnualVemDemand,
+  calculateAnnualVemSupply,
+  calculateAnnualVemGap,
   QUALITY_PRESETS,
   type QualityLevel 
 } from '../lib/modeBConstants';
@@ -70,6 +73,24 @@ export default function Ruwvoerbalans() {
   const recommendation = deficit.isShortage 
     ? recommendPurchase(deficit.deficit, qualityLevel, supply)
     : null;
+
+  // VEM-based calculations (Annual Requirement Engine)
+  const vemDemand = calculateAnnualVemDemand({
+    groups: groups || [],
+    youngJuniorCount: farm.youngStockJuniorCount || 0,
+    youngSeniorCount: farm.youngStockSeniorCount || 0,
+  });
+
+  const vemSupply = calculateAnnualVemSupply({
+    hectares_maize: hectaresMaize,
+    hectares_grass: hectaresGrass,
+    yield_maize_ton_ds_ha: yieldMaize,
+    yield_grass_ton_ds_ha: yieldGrass,
+    quality_level: qualityLevel,
+    // TODO: Add lab results integration
+  });
+
+  const vemGap = calculateAnnualVemGap(vemDemand.totalVem, vemSupply.totalVem);
 
   // Format date
   const formatDate = (date: Date) => {
@@ -308,6 +329,110 @@ export default function Ruwvoerbalans() {
                 <div className="text-sm mt-2 opacity-90">
                   {deficit.percentageCovered}% gedekt
                 </div>
+              </div>
+            </div>
+
+            {/* VEM Jaarbalans (Annual Energy Balance) - NEW! */}
+            <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl shadow-lg p-6 mb-6 border-2 border-indigo-300">
+              <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                ⚡ VEM Jaarbalans (Energiebalans)
+                <span className="text-sm font-normal text-gray-600">CVB 2022 Metabolisch Gewicht</span>
+              </h2>
+
+              {/* VEM Demand Breakdown */}
+              <div className="bg-white rounded-lg p-4 mb-4">
+                <h3 className="font-semibold text-gray-700 mb-3">Jaarlijkse Energiebehoefte (VEM):</h3>
+                <div className="space-y-2 font-mono text-sm">
+                  {vemDemand.breakdown.map((item, idx) => (
+                    <div key={idx} className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                      <span className="text-gray-700">
+                        {item.name}: {item.count} × {item.dailyVem.toLocaleString('nl-NL')} VEM/dag × 365
+                      </span>
+                      <span className="font-bold text-indigo-600">
+                        = {(item.annualVem / 1000000).toFixed(1)} miljoen VEM
+                      </span>
+                    </div>
+                  ))}
+                  <div className="flex justify-between items-center p-3 bg-indigo-100 rounded-lg border-2 border-indigo-300 mt-3">
+                    <span className="font-bold text-gray-800">Totale Jaarlijkse Behoefte:</span>
+                    <span className="font-bold text-2xl text-indigo-700">
+                      {(vemDemand.totalVem / 1000000).toFixed(1)} miljoen VEM
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* VEM Supply */}
+              <div className="bg-white rounded-lg p-4 mb-4">
+                <h3 className="font-semibold text-gray-700 mb-3">Jaarlijkse Energievoorraad (VEM):</h3>
+                <div className="space-y-2 font-mono text-sm">
+                  <div className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                    <span className="text-gray-700">
+                      Maïs: {(vemSupply.maizeKgDs / 1000).toFixed(1)} ton DS × {vemSupply.maizeVemPerKg} VEM/kg
+                    </span>
+                    <span className="font-bold text-green-600">
+                      = {(vemSupply.maizeVem / 1000000).toFixed(1)} miljoen VEM
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                    <span className="text-gray-700">
+                      Gras: {(vemSupply.grassKgDs / 1000).toFixed(1)} ton DS × {vemSupply.grassVemPerKg} VEM/kg
+                    </span>
+                    <span className="font-bold text-green-600">
+                      = {(vemSupply.grassVem / 1000000).toFixed(1)} miljoen VEM
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 bg-green-100 rounded-lg border-2 border-green-300 mt-3">
+                    <span className="font-bold text-gray-800">Totale Jaarlijkse Voorraad:</span>
+                    <span className="font-bold text-2xl text-green-700">
+                      {(vemSupply.totalVem / 1000000).toFixed(1)} miljoen VEM
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Commercial Output */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className={`rounded-lg p-4 ${
+                  vemGap.isShortage 
+                    ? 'bg-red-100 border-2 border-red-300' 
+                    : 'bg-blue-100 border-2 border-blue-300'
+                }`}>
+                  <div className="text-sm font-medium text-gray-700 mb-1">
+                    {vemGap.isShortage ? 'VEM Tekort' : 'VEM Overschot'}
+                  </div>
+                  <div className={`text-2xl font-bold ${
+                    vemGap.isShortage ? 'text-red-700' : 'text-blue-700'
+                  }`}>
+                    {(Math.abs(vemGap.vemDeficit) / 1000000).toFixed(1)} miljoen
+                  </div>
+                </div>
+
+                <div className="bg-orange-100 border-2 border-orange-300 rounded-lg p-4">
+                  <div className="text-sm font-medium text-gray-700 mb-1">Krachtvoer Nodig</div>
+                  <div className="text-2xl font-bold text-orange-700">
+                    {vemGap.concentrateTonsNeeded.toLocaleString('nl-NL')} ton
+                  </div>
+                  <div className="text-xs text-gray-600 mt-1">
+                    ≈ {vemGap.truckloadsNeeded} vrachtwagens
+                  </div>
+                </div>
+
+                <div className="bg-purple-100 border-2 border-purple-300 rounded-lg p-4">
+                  <div className="text-sm font-medium text-gray-700 mb-1">Zelfvoorzieningsgraad</div>
+                  <div className="text-2xl font-bold text-purple-700">
+                    {vemGap.selfSufficiencyPercent}%
+                  </div>
+                  <div className="text-xs text-gray-600 mt-1">
+                    {vemGap.selfSufficiencyPercent >= 80 ? '✅ Goed' : vemGap.selfSufficiencyPercent >= 50 ? '⚠️ Matig' : '🔴 Laag'}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-4 p-3 bg-indigo-100 border border-indigo-300 rounded-lg">
+                <p className="text-sm text-indigo-800">
+                  <strong>Bron:</strong> CVB 2022 Metabolisch Gewicht Formule (42.4 × BW^0.75 + 442 × FPCM)
+                </p>
               </div>
             </div>
 

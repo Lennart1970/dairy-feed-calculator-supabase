@@ -217,3 +217,172 @@ export function recommendPurchase(
     };
   }
 }
+
+/**
+ * Calculate annual VEM demand using CVB 2022 metabolic weight formula
+ * This is the "True Demand" that accounts for maintenance + production
+ */
+export function calculateAnnualVemDemand(params: {
+  groups: Array<{
+    cowCount: number;
+    avgWeightKg: number;
+    avgMilkYieldKg: number;
+    lifeStage: string;
+  }>;
+  youngJuniorCount: number;
+  youngSeniorCount: number;
+}): {
+  cowsVem: number;
+  youngstockVem: number;
+  totalVem: number;
+  breakdown: Array<{
+    name: string;
+    count: number;
+    dailyVem: number;
+    annualVem: number;
+  }>;
+} {
+  const DAYS_IN_YEAR = 365;
+  const VEM_MAINTENANCE_COEFFICIENT = 42.4; // CVB 2022 [Source 373, 784]
+  const VEM_PER_KG_MILK = 442; // CVB 2025 [Source 785]
+  const AVG_YOUNGSTOCK_JUNIOR_VEM = 5000; // CVB Table 1.5 [Source 773]
+  const AVG_YOUNGSTOCK_SENIOR_VEM = 6500; // CVB Table 1.5 [Source 773]
+
+  let totalCowsVem = 0;
+  const breakdown = [];
+
+  // Calculate for each herd group
+  for (const group of params.groups) {
+    const metabolicWeight = Math.pow(group.avgWeightKg, 0.75);
+    const maintenance = VEM_MAINTENANCE_COEFFICIENT * metabolicWeight;
+    
+    // Production VEM (0 for dry cows)
+    const production = group.lifeStage === 'dry' ? 0 : VEM_PER_KG_MILK * group.avgMilkYieldKg;
+    
+    const dailyVem = maintenance + production;
+    const annualVem = dailyVem * group.cowCount * DAYS_IN_YEAR;
+    
+    totalCowsVem += annualVem;
+    
+    breakdown.push({
+      name: group.lifeStage === 'dry' ? 'Droogstaand' : `Lactatie (${group.avgMilkYieldKg} kg)`,
+      count: group.cowCount,
+      dailyVem: Math.round(dailyVem),
+      annualVem: Math.round(annualVem),
+    });
+  }
+
+  // Youngstock
+  const youngJuniorVem = params.youngJuniorCount * AVG_YOUNGSTOCK_JUNIOR_VEM * DAYS_IN_YEAR;
+  const youngSeniorVem = params.youngSeniorCount * AVG_YOUNGSTOCK_SENIOR_VEM * DAYS_IN_YEAR;
+  const totalYoungstockVem = youngJuniorVem + youngSeniorVem;
+
+  if (params.youngJuniorCount > 0) {
+    breakdown.push({
+      name: 'Jongvee <1 jaar',
+      count: params.youngJuniorCount,
+      dailyVem: AVG_YOUNGSTOCK_JUNIOR_VEM,
+      annualVem: Math.round(youngJuniorVem),
+    });
+  }
+
+  if (params.youngSeniorCount > 0) {
+    breakdown.push({
+      name: 'Jongvee >1 jaar',
+      count: params.youngSeniorCount,
+      dailyVem: AVG_YOUNGSTOCK_SENIOR_VEM,
+      annualVem: Math.round(youngSeniorVem),
+    });
+  }
+
+  return {
+    cowsVem: Math.round(totalCowsVem),
+    youngstockVem: Math.round(totalYoungstockVem),
+    totalVem: Math.round(totalCowsVem + totalYoungstockVem),
+    breakdown,
+  };
+}
+
+/**
+ * Calculate annual VEM supply from crop plan with lab quality
+ * This multiplies physical volume (kg DS) by nutritional quality (VEM/kg)
+ */
+export function calculateAnnualVemSupply(params: {
+  hectares_maize: number;
+  hectares_grass: number;
+  yield_maize_ton_ds_ha: number;
+  yield_grass_ton_ds_ha: number;
+  quality_level: QualityLevel;
+  labResults?: Array<{
+    feedType: 'maize' | 'grass';
+    vem: number;
+  }>;
+}): {
+  maizeVem: number;
+  grassVem: number;
+  totalVem: number;
+  maizeKgDs: number;
+  grassKgDs: number;
+  maizeVemPerKg: number;
+  grassVemPerKg: number;
+} {
+  // Physical volume (kg DS)
+  const maizeKgDs = params.hectares_maize * params.yield_maize_ton_ds_ha * 1000;
+  const grassKgDs = params.hectares_grass * params.yield_grass_ton_ds_ha * 1000;
+
+  // Nutritional quality (VEM/kg) - Use lab results if available, otherwise CVB defaults
+  const labMaize = params.labResults?.find(r => r.feedType === 'maize');
+  const labGrass = params.labResults?.find(r => r.feedType === 'grass');
+
+  const maizeVemPerKg = labMaize?.vem || QUALITY_PRESETS[params.quality_level].maize.vem;
+  const grassVemPerKg = labGrass?.vem || QUALITY_PRESETS[params.quality_level].grass.vem;
+
+  // Total VEM = kg DS × VEM/kg [Source 475, 477]
+  const maizeVem = maizeKgDs * maizeVemPerKg;
+  const grassVem = grassKgDs * grassVemPerKg;
+
+  return {
+    maizeVem: Math.round(maizeVem),
+    grassVem: Math.round(grassVem),
+    totalVem: Math.round(maizeVem + grassVem),
+    maizeKgDs: Math.round(maizeKgDs),
+    grassKgDs: Math.round(grassKgDs),
+    maizeVemPerKg,
+    grassVemPerKg,
+  };
+}
+
+/**
+ * Calculate the annual VEM gap and commercial requirements
+ */
+export function calculateAnnualVemGap(
+  demandVem: number,
+  supplyVem: number,
+  concentrateVemPerKg: number = 1050
+): {
+  vemDeficit: number;
+  selfSufficiencyPercent: number;
+  concentrateKgNeeded: number;
+  concentrateTonsNeeded: number;
+  truckloadsNeeded: number;
+  isShortage: boolean;
+} {
+  const vemDeficit = demandVem - supplyVem;
+  const selfSufficiencyPercent = (supplyVem / demandVem) * 100;
+  
+  // Convert VEM deficit to concentrate kg [Source 48, 49]
+  const concentrateKgNeeded = Math.max(0, vemDeficit / concentrateVemPerKg);
+  const concentrateTonsNeeded = concentrateKgNeeded / 1000;
+  
+  // Truckloads (assuming 30 tons per truck)
+  const truckloadsNeeded = Math.ceil(concentrateTonsNeeded / 30);
+
+  return {
+    vemDeficit: Math.round(vemDeficit),
+    selfSufficiencyPercent: Math.round(selfSufficiencyPercent * 10) / 10,
+    concentrateKgNeeded: Math.round(concentrateKgNeeded),
+    concentrateTonsNeeded: Math.round(concentrateTonsNeeded * 10) / 10,
+    truckloadsNeeded,
+    isShortage: vemDeficit > 0,
+  };
+}

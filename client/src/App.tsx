@@ -13,6 +13,7 @@ import FarmDashboard from "./pages/FarmDashboard";
 import HerdGroups from "./pages/HerdGroups";
 import Inventory from "./pages/Inventory";
 import LoadingList from "./pages/LoadingList";
+import Ruwvoerbalans from "./pages/Ruwvoerbalans";
 
 function Router() {
   const [location] = useLocation();
@@ -69,6 +70,7 @@ function Router() {
       <Route path={"/groepen"} component={HerdGroups} />
       <Route path={"/voorraad"} component={Inventory} />
       <Route path={"/laadlijst"} component={LoadingList} />
+      <Route path={"/ruwvoerbalans"} component={Ruwvoerbalans} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />

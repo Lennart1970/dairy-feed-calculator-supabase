@@ -213,28 +213,63 @@ export default function RationAssignment() {
             </div>
           )}
 
-          {selectedRationId && rationDensity && (
-            <div className="mt-4 p-4 bg-indigo-50 rounded-lg border border-indigo-200">
-              <p className="text-sm font-semibold text-gray-700 mb-2">Mix Samenstelling:</p>
-              <div className="grid grid-cols-4 gap-3 text-center">
-                <div>
-                  <p className="text-lg font-bold text-indigo-600">{rationDensity.vemPerKgDs}</p>
-                  <p className="text-xs text-gray-600">VEM/kg DS</p>
-                </div>
-                <div>
-                  <p className="text-lg font-bold text-blue-600">{rationDensity.dvePerKgDs}</p>
-                  <p className="text-xs text-gray-600">DVE/kg DS</p>
-                </div>
-                <div>
-                  <p className="text-lg font-bold text-green-600">{rationDensity.oebPerKgDs}</p>
-                  <p className="text-xs text-gray-600">OEB/kg DS</p>
-                </div>
-                <div>
-                  <p className="text-lg font-bold text-purple-600">{rationDensity.swPerKgDs}</p>
-                  <p className="text-xs text-gray-600">SW/kg DS</p>
+          {selectedRationId && rationDensity && selectedRation && (
+            <>
+              <div className="mt-4 p-4 bg-indigo-50 rounded-lg border border-indigo-200">
+                <p className="text-sm font-semibold text-gray-700 mb-2">Mix Samenstelling:</p>
+                <div className="grid grid-cols-4 gap-3 text-center">
+                  <div>
+                    <p className="text-lg font-bold text-indigo-600">{rationDensity.vemPerKgDs}</p>
+                    <p className="text-xs text-gray-600">VEM/kg DS</p>
+                  </div>
+                  <div>
+                    <p className="text-lg font-bold text-blue-600">{rationDensity.dvePerKgDs}</p>
+                    <p className="text-xs text-gray-600">DVE/kg DS</p>
+                  </div>
+                  <div>
+                    <p className="text-lg font-bold text-green-600">{rationDensity.oebPerKgDs}</p>
+                    <p className="text-xs text-gray-600">OEB/kg DS</p>
+                  </div>
+                  <div>
+                    <p className="text-lg font-bold text-purple-600">{rationDensity.swPerKgDs}</p>
+                    <p className="text-xs text-gray-600">SW/kg DS</p>
+                  </div>
                 </div>
               </div>
-            </div>
+              
+              {/* Data Quality Indicator */}
+              {selectedRation.feeds && selectedRation.feeds.length > 0 && (() => {
+                const labVerifiedCount = selectedRation.feeds.filter(f => f.feed?.sourceType === 'lab_verified').length;
+                const totalCount = selectedRation.feeds.length;
+                const labPercentage = Math.round((labVerifiedCount / totalCount) * 100);
+                const qualityColor = labPercentage >= 80 ? 'green' : labPercentage >= 50 ? 'yellow' : 'orange';
+                const qualityBg = labPercentage >= 80 ? 'bg-green-50 border-green-200' : labPercentage >= 50 ? 'bg-yellow-50 border-yellow-200' : 'bg-orange-50 border-orange-200';
+                const qualityText = labPercentage >= 80 ? 'text-green-800' : labPercentage >= 50 ? 'text-yellow-800' : 'text-orange-800';
+                
+                return (
+                  <div className={`mt-3 p-3 rounded-lg border ${qualityBg}`}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg">🧪</span>
+                        <div>
+                          <p className={`text-sm font-semibold ${qualityText}`}>
+                            Data Kwaliteit: {labPercentage}% Lab-geverifieerd
+                          </p>
+                          <p className="text-xs text-gray-600">
+                            {labVerifiedCount} van {totalCount} voeders hebben laboratorium analyse
+                          </p>
+                        </div>
+                      </div>
+                      {labPercentage < 80 && (
+                        <span className="text-xs text-gray-500 italic">
+                          Upload meer lab rapporten voor hogere nauwkeurigheid
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+            </>
           )}
         </div>
 

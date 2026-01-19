@@ -12,7 +12,9 @@ import {
   getGroupRation, saveGroupRation, calculateFarmDailyUsage,
   // Base Rations
   getBaseRations, getBaseRationById, createBaseRation, updateBaseRation, deleteBaseRation,
-  setBaseRationFeeds, calculateBaseRationDensity
+  setBaseRationFeeds, calculateBaseRationDensity,
+  // Lab Results
+  saveLabResultAsFeed, getLabResultsForFarm, getLabResultById, deleteLabResult
 } from "./db";
 import { uploadPdfForProcessing, parseLabReportPdf } from "./pdfParser";
 import { z } from "zod";
@@ -227,6 +229,91 @@ export const appRouter = router({
             error: error instanceof Error ? error.message : "Fout bij het verwerken van het rapport"
           };
         }
+      }),
+    
+    // Save parsed lab result as feed
+    saveAsFeed: publicProcedure
+      .input(z.object({
+        farmId: z.number(),
+        productName: z.string(),
+        productType: z.string().optional(),
+        vem: z.number(),
+        dve: z.number(),
+        oeb: z.number(),
+        dsPercent: z.number(),
+        sw: z.number(),
+        rawProtein: z.number().optional(),
+        rawFiber: z.number().optional(),
+        sugar: z.number().optional(),
+        starch: z.number().optional(),
+        reportFileUrl: z.string().optional(),
+        reportFileName: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const result = await saveLabResultAsFeed({
+          farm_id: input.farmId,
+          product_name: input.productName,
+          product_type: input.productType,
+          vem: input.vem,
+          dve: input.dve,
+          oeb: input.oeb,
+          ds_percent: input.dsPercent,
+          sw: input.sw,
+          raw_protein: input.rawProtein,
+          raw_fiber: input.rawFiber,
+          sugar: input.sugar,
+          starch: input.starch,
+          report_file_url: input.reportFileUrl,
+          report_file_name: input.reportFileName,
+        });
+        
+        return { 
+          success: !!result, 
+          feed: result?.feed ? {
+            id: result.feed.id,
+            name: result.feed.name,
+            displayName: result.feed.display_name,
+            vem: result.feed.vem_per_unit,
+            dve: result.feed.dve_per_unit,
+            oeb: result.feed.oeb_per_unit,
+            sw: parseFloat(result.feed.sw_per_kg_ds),
+            dsPercent: result.feed.default_ds_percent,
+            sourceType: 'lab_verified',
+          } : null
+        };
+      }),
+    
+    // List all lab results for farm
+    list: publicProcedure
+      .input(z.object({ farmId: z.number() }))
+      .query(async ({ input }) => {
+        const results = await getLabResultsForFarm(input.farmId);
+        return results.map(r => ({
+          id: r.id,
+          farmId: r.farm_id,
+          productName: r.product_name,
+          productType: r.product_type,
+          vem: r.vem,
+          dve: r.dve,
+          oeb: r.oeb,
+          dsPercent: parseFloat(String(r.ds_percent)),
+          sw: parseFloat(String(r.sw)),
+          rawProtein: r.raw_protein,
+          rawFiber: r.raw_fiber,
+          sugar: r.sugar,
+          starch: r.starch,
+          qualityScore: r.quality_score,
+          uploadDate: r.upload_date,
+          isActive: r.is_active,
+        }));
+      }),
+    
+    // Delete lab result
+    delete: publicProcedure
+      .input(z.object({ labResultId: z.number() }))
+      .mutation(async ({ input }) => {
+        const success = await deleteLabResult(input.labResultId);
+        return { success };
       }),
   }),
 

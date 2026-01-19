@@ -32,7 +32,15 @@ export default function Basisrantsoen() {
   const { data: allFeeds } = trpc.feeds.list.useQuery();
   const roughageFeeds = useMemo(() => {
     if (!allFeeds) return [];
-    return allFeeds.filter(f => f.category === 'roughage' || f.category === 'ruwvoer');
+    const filtered = allFeeds.filter(f => f.category === 'roughage' || f.category === 'ruwvoer');
+    // Sort: lab-verified feeds first, then CVB feeds
+    return filtered.sort((a, b) => {
+      const aIsLab = a.sourceType === 'lab_verified';
+      const bIsLab = b.sourceType === 'lab_verified';
+      if (aIsLab && !bIsLab) return -1;
+      if (!aIsLab && bIsLab) return 1;
+      return a.displayName.localeCompare(b.displayName);
+    });
   }, [allFeeds]);
 
   // Mutations
@@ -236,7 +244,7 @@ export default function Basisrantsoen() {
                 <option value="" disabled>Kies een voer om toe te voegen...</option>
                 {roughageFeeds.map(feed => (
                   <option key={feed.id} value={feed.id}>
-                    {feed.displayName} ({feed.vemPerUnit} VEM, {feed.dvePerUnit} DVE)
+                    {feed.sourceType === 'lab_verified' ? '🧪 ' : ''}{feed.displayName} ({feed.vemPerUnit} VEM, {feed.dvePerUnit} DVE)
                   </option>
                 ))}
               </select>
@@ -268,7 +276,15 @@ export default function Basisrantsoen() {
                   {selectedFeeds.map(({ feed, percentage }) => (
                     <div key={feed.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                       <div className="flex-1">
-                        <p className="font-medium text-gray-900">{feed.displayName}</p>
+                        <p className="font-medium text-gray-900">
+                          {feed.sourceType === 'lab_verified' && <span className="mr-1">🧪</span>}
+                          {feed.displayName}
+                          {feed.sourceType === 'lab_verified' && (
+                            <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
+                              Lab-geverifieerd
+                            </span>
+                          )}
+                        </p>
                         <p className="text-xs text-gray-500">
                           {feed.vemPerUnit} VEM | {feed.dvePerUnit} DVE | SW {feed.swPerKgDs}
                         </p>

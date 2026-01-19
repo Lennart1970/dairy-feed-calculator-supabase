@@ -16,6 +16,7 @@ import SectionNav from "@/components/SectionNav";
 import { type CalculationResult, type FeedData, type FeedInput } from "@/lib/calculator";
 import { AuditableCalculationDisplay } from "@/components/AuditableCalculationDisplay";
 import { runAuditableCalculation, type AuditableCalculationResult } from "@/lib/auditableBridge";
+import { assessFeedQuality } from "@/lib/feedQuality";
 
 // Concentrate feed inputs state type
 type FeedInputState = Record<string, FeedInput>;
@@ -144,18 +145,38 @@ function RoughageInputRow({
 }) {
   const [kgProductInput, setKgProductInput] = useState<string>('');
   const [isEditingKgProduct, setIsEditingKgProduct] = useState(false);
+  const [showQuality, setShowQuality] = useState(false);
 
   // Calculate kg Product from kg DS when not editing
   const calculatedKgProduct = feed.dsPercent > 0 ? ((feed.amount / feed.dsPercent) * 100).toFixed(1) : '';
 
+  // Assess quality if this is a lab-verified feed
+  const quality = useMemo(() => {
+    if (feed.displayName.includes('🧪')) {
+      return assessFeedQuality(feed.displayName, feed.vem, feed.dve, feed.oeb);
+    }
+    return null;
+  }, [feed]);
+
   return (
-    <div className="grid grid-cols-12 gap-3 items-center py-3 border-b border-slate-100 dark:border-slate-800 last:border-0">
-      <div className={onRemove ? "col-span-3" : "col-span-4"}>
-        <div className="font-medium text-sm">{feed.displayName}</div>
-        <div className="text-xs text-muted-foreground font-mono">
-          {feed.dsPercent}% DS | {feed.vem} VEM | {feed.dve}g DVE | {feed.oeb >= 0 ? '+' : ''}{feed.oeb}g OEB
+    <div>
+      <div className="grid grid-cols-12 gap-3 items-center py-3 border-b border-slate-100 dark:border-slate-800 last:border-0">
+        <div className={onRemove ? "col-span-3" : "col-span-4"}>
+          <div className="font-medium text-sm flex items-center gap-2">
+            {feed.displayName}
+            {quality && (
+              <button
+                onClick={() => setShowQuality(!showQuality)}
+                className={`text-xs px-2 py-0.5 rounded-full ${quality.bgColor} ${quality.color} ${quality.borderColor} border`}
+              >
+                {quality.badge}
+              </button>
+            )}
+          </div>
+          <div className="text-xs text-muted-foreground font-mono">
+            {feed.dsPercent}% DS | {feed.vem} VEM | {feed.dve}g DVE | {feed.oeb >= 0 ? '+' : ''}{feed.oeb}g OEB
+          </div>
         </div>
-      </div>
       <div className="col-span-3">
         <Label className="text-xs text-muted-foreground">Hoeveelheid (kg DS)</Label>
         <Input
@@ -207,6 +228,34 @@ function RoughageInputRow({
           >
             <X className="w-4 h-4" />
           </Button>
+        </div>
+      )}
+      </div>
+      
+      {/* Quality Details Panel */}
+      {quality && showQuality && (
+        <div className={`mt-2 p-3 rounded-lg border ${quality.bgColor} ${quality.borderColor}`}>
+          {quality.warnings.length > 0 && (
+            <div className="mb-2">
+              <p className="text-xs font-semibold text-red-700 mb-1">⚠️ Waarschuwingen:</p>
+              <ul className="text-xs text-red-600 list-disc list-inside space-y-1">
+                {quality.warnings.map((w, i) => <li key={i}>{w}</li>)}
+              </ul>
+            </div>
+          )}
+          {quality.recommendations.length > 0 && (
+            <div className="mb-2">
+              <p className="text-xs font-semibold text-blue-700 mb-1">💡 Aanbevelingen:</p>
+              <ul className="text-xs text-blue-600 list-disc list-inside space-y-1">
+                {quality.recommendations.map((r, i) => <li key={i}>{r}</li>)}
+              </ul>
+            </div>
+          )}
+          {quality.impactEstimate && (
+            <div className="text-xs text-gray-700">
+              <span className="font-semibold">Geschatte impact:</span> {quality.impactEstimate}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -347,13 +396,43 @@ export default function Home() {
   const [showUploadForm, setShowUploadForm] = useState(false);
   const [nextFeedId, setNextFeedId] = useState(4); // Start after default feeds
 
+  // Mutation to save lab result
+  const saveLabFeedMutation = trpc.labReport.saveAsFeed.useMutation({
+    onSuccess: (result) => {
+      if (result.success && result.feed) {
+        // Refresh feeds list to include new lab-verified feed
+        feedsQuery.refetch();
+        console.log('[Lab Upload] Feed saved to database:', result.feed);
+      }
+    },
+    onError: (error) => {
+      console.error('[Lab Upload] Failed to save feed:', error);
+    }
+  });
+
   // Handle parsed lab report data
   const handleLabReportParsed = useCallback((data: ParsedFeedData) => {
-    // Create a new roughage feed from the parsed data
+    // Save to database
+    saveLabFeedMutation.mutate({
+      farmId: 1, // TODO: Get from auth context
+      productName: data.productName,
+      productType: data.productType,
+      vem: data.vem,
+      dve: data.dve,
+      oeb: data.oeb,
+      dsPercent: data.dsPercent,
+      sw: data.sw || 0,
+      rawProtein: data.rawProtein,
+      rawFiber: data.rawFiber,
+      sugar: data.sugar,
+      starch: data.starch,
+    });
+    
+    // Also add to local state for immediate display
     const newFeed: RoughageEntry = {
       id: `uploaded_${nextFeedId}`,
       name: `uploaded_${nextFeedId}`,
-      displayName: `${data.productName} (${data.productType})`,
+      displayName: `${data.productName} (${data.productType}) 🧪`,
       vem: data.vem,
       dve: data.dve,
       oeb: data.oeb,
@@ -364,7 +443,7 @@ export default function Home() {
     setRoughageFeeds(prev => [...prev, newFeed]);
     setNextFeedId(prev => prev + 1);
     setShowUploadForm(false);
-  }, [nextFeedId]);
+  }, [nextFeedId, saveLabFeedMutation]);
 
   // Handle removing a roughage feed
   const handleRemoveRoughageFeed = useCallback((id: string) => {

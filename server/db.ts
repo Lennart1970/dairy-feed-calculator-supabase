@@ -1124,3 +1124,204 @@ export async function calculateBaseRationDensity(rationId: number): Promise<{
     return undefined;
   }
 }
+
+
+// ============================================
+// Lab Results Functions
+// ============================================
+
+export interface LabResult {
+  id: number;
+  farm_id: number;
+  report_file_url: string | null;
+  report_file_name: string | null;
+  lab_name: string | null;
+  analysis_date: string | null;
+  upload_date: string;
+  product_name: string;
+  product_type: string | null;
+  vem: number;
+  dve: number;
+  oeb: number;
+  ds_percent: string;
+  sw: string;
+  raw_protein: number | null;
+  raw_fiber: number | null;
+  sugar: number | null;
+  starch: number | null;
+  quality_score: string | null;
+  quality_notes: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function saveLabResultAsFeed(data: {
+  farm_id: number;
+  product_name: string;
+  product_type?: string;
+  vem: number;
+  dve: number;
+  oeb: number;
+  ds_percent: number;
+  sw: number;
+  raw_protein?: number;
+  raw_fiber?: number;
+  sugar?: number;
+  starch?: number;
+  report_file_url?: string;
+  report_file_name?: string;
+}): Promise<{ labResult: LabResult; feed: Feed } | null> {
+  const supabase = getSupabase();
+  
+  try {
+    // Step 1: Calculate quality score
+    const { data: qualityData, error: qualityError } = await supabase
+      .rpc('assess_feed_quality', {
+        p_vem: data.vem,
+        p_dve: data.dve,
+        p_oeb: data.oeb,
+        p_product_name: data.product_name
+      });
+    
+    if (qualityError) {
+      console.warn("[Database] Failed to assess quality, using 'unknown':", qualityError);
+    }
+    
+    const quality_score = qualityData || 'unknown';
+    
+    // Step 2: Save to lab_results
+    const { data: labResultData, error: labError } = await supabase
+      .from('lab_results')
+      .insert({
+        farm_id: data.farm_id,
+        product_name: data.product_name,
+        product_type: data.product_type || null,
+        vem: data.vem,
+        dve: data.dve,
+        oeb: data.oeb,
+        ds_percent: data.ds_percent,
+        sw: data.sw,
+        raw_protein: data.raw_protein || null,
+        raw_fiber: data.raw_fiber || null,
+        sugar: data.sugar || null,
+        starch: data.starch || null,
+        quality_score,
+        report_file_url: data.report_file_url || null,
+        report_file_name: data.report_file_name || null,
+      })
+      .select()
+      .single();
+    
+    if (labError || !labResultData) {
+      console.error("[Database] Failed to save lab result:", labError);
+      return null;
+    }
+    
+    // Step 3: Create feed entry
+    const { data: feedData, error: feedError } = await supabase
+      .from('feeds')
+      .insert({
+        name: data.product_name,
+        display_name: `${data.product_name} (Lab)`,
+        basis: 'roughage',
+        category: 'roughage',
+        vem_per_unit: data.vem,
+        dve_per_unit: data.dve,
+        oeb_per_unit: data.oeb,
+        sw_per_kg_ds: data.sw,
+        default_ds_percent: data.ds_percent,
+        source_type: 'lab_verified',
+        lab_result_id: labResultData.id,
+        is_farm_specific: true,
+        is_active: true,
+        ca_per_unit: '0',
+        p_per_unit: '0',
+        vw_per_kg_ds: null,
+      })
+      .select()
+      .single();
+    
+    if (feedError || !feedData) {
+      console.error("[Database] Failed to create feed:", feedError);
+      return null;
+    }
+    
+    return {
+      labResult: labResultData as LabResult,
+      feed: feedData as Feed
+    };
+  } catch (error) {
+    console.error("[Database] Failed to save lab result as feed:", error);
+    return null;
+  }
+}
+
+export async function getLabResultsForFarm(farmId: number): Promise<LabResult[]> {
+  const supabase = getSupabase();
+  
+  try {
+    const { data, error } = await supabase
+      .from('lab_results')
+      .select('*')
+      .eq('farm_id', farmId)
+      .eq('is_active', true)
+      .order('upload_date', { ascending: false });
+    
+    if (error) {
+      console.error("[Database] Failed to get lab results:", error);
+      return [];
+    }
+    
+    return (data || []) as LabResult[];
+  } catch (error) {
+    console.error("[Database] Failed to get lab results:", error);
+    return [];
+  }
+}
+
+export async function getLabResultById(labResultId: number): Promise<LabResult | null> {
+  const supabase = getSupabase();
+  
+  try {
+    const { data, error } = await supabase
+      .from('lab_results')
+      .select('*')
+      .eq('id', labResultId)
+      .eq('is_active', true)
+      .single();
+    
+    if (error || !data) {
+      return null;
+    }
+    
+    return data as LabResult;
+  } catch (error) {
+    console.error("[Database] Failed to get lab result:", error);
+    return null;
+  }
+}
+
+export async function deleteLabResult(labResultId: number): Promise<boolean> {
+  const supabase = getSupabase();
+  
+  try {
+    const { error } = await supabase
+      .from('lab_results')
+      .update({ 
+        is_active: false,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', labResultId);
+    
+    if (error) {
+      console.error("[Database] Failed to delete lab result:", error);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error("[Database] Failed to delete lab result:", error);
+    return false;
+  }
+}

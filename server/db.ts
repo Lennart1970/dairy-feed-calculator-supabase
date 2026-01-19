@@ -858,3 +858,270 @@ export async function calculateFarmDailyUsage(farmId: number = 1): Promise<Map<n
     return usageMap;
   }
 }
+}
+
+// ============================================
+// Base Ration Functions
+// ============================================
+
+export interface BaseRation {
+  id: number;
+  farm_id: number;
+  name: string;
+  description: string | null;
+  target_milk_kg: number | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface BaseRationFeed {
+  id: number;
+  base_ration_id: number;
+  feed_id: number;
+  percentage: number | null;
+  amount_kg_ds: number | null;
+  load_order: number | null;
+  created_at: string;
+  feed?: Feed;
+}
+
+export interface BaseRationWithFeeds extends BaseRation {
+  feeds: BaseRationFeed[];
+}
+
+/**
+ * Get all base rations for a farm
+ */
+export async function getBaseRations(farmId: number = 1): Promise<BaseRation[]> {
+  const supabase = getSupabase();
+  try {
+    const { data, error } = await supabase
+      .from('base_rations')
+      .select('*')
+      .eq('farm_id', farmId)
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      console.error("[Database] Failed to get base rations:", error);
+      return [];
+    }
+    return data || [];
+  } catch (error) {
+    console.error("[Database] Failed to get base rations:", error);
+    return [];
+  }
+}
+
+/**
+ * Get a single base ration with its feeds
+ */
+export async function getBaseRationById(rationId: number): Promise<BaseRationWithFeeds | undefined> {
+  const supabase = getSupabase();
+  try {
+    // Get the base ration
+    const { data: ration, error: rationError } = await supabase
+      .from('base_rations')
+      .select('*')
+      .eq('id', rationId)
+      .single();
+    
+    if (rationError || !ration) {
+      console.error("[Database] Failed to get base ration:", rationError);
+      return undefined;
+    }
+
+    // Get the feeds in this ration
+    const { data: feeds, error: feedsError } = await supabase
+      .from('base_ration_feeds')
+      .select(`
+        *,
+        feed:feeds(*)
+      `)
+      .eq('base_ration_id', rationId)
+      .order('load_order');
+    
+    if (feedsError) {
+      console.error("[Database] Failed to get base ration feeds:", feedsError);
+      return { ...ration, feeds: [] };
+    }
+
+    return { ...ration, feeds: feeds || [] };
+  } catch (error) {
+    console.error("[Database] Failed to get base ration by id:", error);
+    return undefined;
+  }
+}
+
+/**
+ * Create a new base ration
+ */
+export async function createBaseRation(
+  ration: Omit<BaseRation, 'id' | 'created_at' | 'updated_at'>
+): Promise<BaseRation | undefined> {
+  const supabase = getSupabase();
+  try {
+    const { data, error } = await supabase
+      .from('base_rations')
+      .insert(ration)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error("[Database] Failed to create base ration:", error);
+      return undefined;
+    }
+    return data;
+  } catch (error) {
+    console.error("[Database] Failed to create base ration:", error);
+    return undefined;
+  }
+}
+
+/**
+ * Update a base ration
+ */
+export async function updateBaseRation(
+  rationId: number,
+  updates: Partial<BaseRation>
+): Promise<boolean> {
+  const supabase = getSupabase();
+  try {
+    const { error } = await supabase
+      .from('base_rations')
+      .update(updates)
+      .eq('id', rationId);
+    
+    if (error) {
+      console.error("[Database] Failed to update base ration:", error);
+      return false;
+    }
+    return true;
+  } catch (error) {
+    console.error("[Database] Failed to update base ration:", error);
+    return false;
+  }
+}
+
+/**
+ * Delete a base ration
+ */
+export async function deleteBaseRation(rationId: number): Promise<boolean> {
+  const supabase = getSupabase();
+  try {
+    const { error } = await supabase
+      .from('base_rations')
+      .delete()
+      .eq('id', rationId);
+    
+    if (error) {
+      console.error("[Database] Failed to delete base ration:", error);
+      return false;
+    }
+    return true;
+  } catch (error) {
+    console.error("[Database] Failed to delete base ration:", error);
+    return false;
+  }
+}
+
+/**
+ * Add or update feeds in a base ration
+ */
+export async function setBaseRationFeeds(
+  rationId: number,
+  feeds: Array<{
+    feed_id: number;
+    percentage?: number;
+    amount_kg_ds?: number;
+    load_order?: number;
+  }>
+): Promise<boolean> {
+  const supabase = getSupabase();
+  try {
+    // Delete existing feeds for this ration
+    await supabase
+      .from('base_ration_feeds')
+      .delete()
+      .eq('base_ration_id', rationId);
+
+    // Insert new feeds
+    if (feeds.length > 0) {
+      const { error } = await supabase
+        .from('base_ration_feeds')
+        .insert(
+          feeds.map((f, index) => ({
+            base_ration_id: rationId,
+            feed_id: f.feed_id,
+            percentage: f.percentage || null,
+            amount_kg_ds: f.amount_kg_ds || null,
+            load_order: f.load_order !== undefined ? f.load_order : index,
+          }))
+        );
+
+      if (error) {
+        console.error("[Database] Failed to set base ration feeds:", error);
+        return false;
+      }
+    }
+
+    return true;
+  } catch (error) {
+    console.error("[Database] Failed to set base ration feeds:", error);
+    return false;
+  }
+}
+
+/**
+ * Calculate the nutritional density of a base ration mix
+ */
+export async function calculateBaseRationDensity(rationId: number): Promise<{
+  vemPerKgDs: number;
+  dvePerKgDs: number;
+  oebPerKgDs: number;
+  swPerKgDs: number;
+  vwPerKgDs: number;
+} | undefined> {
+  try {
+    const ration = await getBaseRationById(rationId);
+    if (!ration || !ration.feeds || ration.feeds.length === 0) {
+      return undefined;
+    }
+
+    let totalVem = 0;
+    let totalDve = 0;
+    let totalOeb = 0;
+    let totalSw = 0;
+    let totalVw = 0;
+    let totalPercentage = 0;
+
+    for (const rationFeed of ration.feeds) {
+      if (!rationFeed.feed || !rationFeed.percentage) continue;
+
+      const weight = rationFeed.percentage / 100;
+      totalPercentage += rationFeed.percentage;
+
+      totalVem += rationFeed.feed.vem_per_unit * weight;
+      totalDve += rationFeed.feed.dve_per_unit * weight;
+      totalOeb += rationFeed.feed.oeb_per_unit * weight;
+      totalSw += (rationFeed.feed.sw_per_kg_ds || 0) * weight;
+      totalVw += (rationFeed.feed.vw_per_kg_ds || 0) * weight;
+    }
+
+    // Validate percentages add up to 100%
+    if (Math.abs(totalPercentage - 100) > 0.01) {
+      console.warn(`[Database] Base ration ${rationId} percentages don't add up to 100%: ${totalPercentage}%`);
+    }
+
+    return {
+      vemPerKgDs: Math.round(totalVem),
+      dvePerKgDs: Math.round(totalDve),
+      oebPerKgDs: Math.round(totalOeb),
+      swPerKgDs: Math.round(totalSw * 100) / 100,
+      vwPerKgDs: Math.round(totalVw * 100) / 100,
+    };
+  } catch (error) {
+    console.error("[Database] Failed to calculate base ration density:", error);
+    return undefined;
+  }
+}

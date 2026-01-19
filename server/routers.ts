@@ -9,7 +9,10 @@ import {
   getFarm, updateFarm,
   getHerdGroups, getHerdGroupById, createHerdGroup, updateHerdGroup, deleteHerdGroup,
   getInventory, updateInventoryStock, recordDelivery, updateDailyUsageRate,
-  getGroupRation, saveGroupRation, calculateFarmDailyUsage
+  getGroupRation, saveGroupRation, calculateFarmDailyUsage,
+  // Base Rations
+  getBaseRations, getBaseRationById, createBaseRation, updateBaseRation, deleteBaseRation,
+  setBaseRationFeeds, calculateBaseRationDensity
 } from "./db";
 import { uploadPdfForProcessing, parseLabReportPdf } from "./pdfParser";
 import { z } from "zod";
@@ -558,6 +561,163 @@ export const appRouter = router({
           }))
         );
         return { success };
+      }),
+  }),
+
+  // Base Rations Router
+  baseRations: router({
+    list: publicProcedure
+      .input(z.object({ farmId: z.number().optional() }).optional())
+      .query(async ({ input }) => {
+        const rations = await getBaseRations(input?.farmId || 1);
+        return rations.map(r => ({
+          id: r.id,
+          farmId: r.farm_id,
+          name: r.name,
+          description: r.description,
+          targetMilkKg: r.target_milk_kg,
+          isActive: r.is_active,
+          createdAt: r.created_at,
+          updatedAt: r.updated_at,
+        }));
+      }),
+
+    get: publicProcedure
+      .input(z.object({ rationId: z.number() }))
+      .query(async ({ input }) => {
+        const ration = await getBaseRationById(input.rationId);
+        if (!ration) return null;
+        
+        return {
+          id: ration.id,
+          farmId: ration.farm_id,
+          name: ration.name,
+          description: ration.description,
+          targetMilkKg: ration.target_milk_kg,
+          isActive: ration.is_active,
+          createdAt: ration.created_at,
+          updatedAt: ration.updated_at,
+          feeds: ration.feeds.map(f => ({
+            id: f.id,
+            baseRationId: f.base_ration_id,
+            feedId: f.feed_id,
+            percentage: f.percentage,
+            amountKgDs: f.amount_kg_ds,
+            loadOrder: f.load_order,
+            createdAt: f.created_at,
+            feed: f.feed ? {
+              id: f.feed.id,
+              name: f.feed.name,
+              displayName: f.feed.display_name,
+              category: f.feed.category,
+              vemPerUnit: f.feed.vem_per_unit,
+              dvePerUnit: f.feed.dve_per_unit,
+              oebPerUnit: f.feed.oeb_per_unit,
+              swPerKgDs: f.feed.sw_per_kg_ds,
+              vwPerKgDs: f.feed.vw_per_kg_ds,
+              dsPercent: f.feed.ds_percent,
+            } : undefined,
+          })),
+        };
+      }),
+
+    create: publicProcedure
+      .input(z.object({
+        farmId: z.number(),
+        name: z.string(),
+        description: z.string().optional(),
+        targetMilkKg: z.number().optional(),
+        isActive: z.boolean().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const ration = await createBaseRation({
+          farm_id: input.farmId,
+          name: input.name,
+          description: input.description || null,
+          target_milk_kg: input.targetMilkKg || null,
+          is_active: input.isActive !== undefined ? input.isActive : true,
+        });
+        
+        if (!ration) return { success: false, rationId: null };
+        
+        return {
+          success: true,
+          rationId: ration.id,
+          ration: {
+            id: ration.id,
+            farmId: ration.farm_id,
+            name: ration.name,
+            description: ration.description,
+            targetMilkKg: ration.target_milk_kg,
+            isActive: ration.is_active,
+            createdAt: ration.created_at,
+            updatedAt: ration.updated_at,
+          },
+        };
+      }),
+
+    update: publicProcedure
+      .input(z.object({
+        rationId: z.number(),
+        name: z.string().optional(),
+        description: z.string().optional(),
+        targetMilkKg: z.number().optional(),
+        isActive: z.boolean().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const updates: any = {};
+        if (input.name !== undefined) updates.name = input.name;
+        if (input.description !== undefined) updates.description = input.description;
+        if (input.targetMilkKg !== undefined) updates.target_milk_kg = input.targetMilkKg;
+        if (input.isActive !== undefined) updates.is_active = input.isActive;
+        
+        const success = await updateBaseRation(input.rationId, updates);
+        return { success };
+      }),
+
+    delete: publicProcedure
+      .input(z.object({ rationId: z.number() }))
+      .mutation(async ({ input }) => {
+        const success = await deleteBaseRation(input.rationId);
+        return { success };
+      }),
+
+    setFeeds: publicProcedure
+      .input(z.object({
+        rationId: z.number(),
+        feeds: z.array(z.object({
+          feedId: z.number(),
+          percentage: z.number().optional(),
+          amountKgDs: z.number().optional(),
+          loadOrder: z.number().optional(),
+        })),
+      }))
+      .mutation(async ({ input }) => {
+        const success = await setBaseRationFeeds(
+          input.rationId,
+          input.feeds.map(f => ({
+            feed_id: f.feedId,
+            percentage: f.percentage,
+            amount_kg_ds: f.amountKgDs,
+            load_order: f.loadOrder,
+          }))
+        );
+        return { success };
+      }),
+
+    calculateDensity: publicProcedure
+      .input(z.object({ rationId: z.number() }))
+      .query(async ({ input }) => {
+        const density = await calculateBaseRationDensity(input.rationId);
+        if (!density) return null;
+        
+        return {
+          vemPerKgDs: density.vemPerKgDs,
+          dvePerKgDs: density.dvePerKgDs,
+          oebPerKgDs: density.oebPerKgDs,
+          swPerKgDs: density.swPerKgDs,
+          vwPerKgDs: density.vwPerKgDs,
+        };
       }),
   }),
 });

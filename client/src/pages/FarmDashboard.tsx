@@ -46,6 +46,8 @@ export default function FarmDashboard() {
   const [editingFarm, setEditingFarm] = useState(false);
   const [farmName, setFarmName] = useState('');
   const [milkPrice, setMilkPrice] = useState(0.42);
+  const [youngStockJunior, setYoungStockJunior] = useState(0);
+  const [youngStockSenior, setYoungStockSenior] = useState(0);
 
   // Fetch farm data
   const { data: farm, refetch: refetchFarm } = trpc.farm.get.useQuery();
@@ -85,6 +87,8 @@ export default function FarmDashboard() {
         farmId: farm.id,
         name: farmName,
         milkPricePerKg: milkPrice,
+        youngStockJuniorCount: youngStockJunior,
+        youngStockSeniorCount: youngStockSenior,
       });
     }
   };
@@ -125,6 +129,8 @@ export default function FarmDashboard() {
                     onClick={() => {
                       setFarmName(farm?.name || '');
                       setMilkPrice(farm?.milkPricePerKg || 0.42);
+                      setYoungStockJunior(farm?.youngStockJuniorCount || 0);
+                      setYoungStockSenior(farm?.youngStockSeniorCount || 0);
                       setEditingFarm(true);
                     }}
                   >
@@ -368,29 +374,79 @@ export default function FarmDashboard() {
           </div>
         )}
 
-        {/* Milk Price Setting */}
+        {/* Settings */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">⚙️ Instellingen</h3>
-          <div className="flex items-center gap-4">
-            <label className="text-gray-600">Melkprijs:</label>
-            <div className="flex items-center gap-2">
-              <span className="text-gray-500">€</span>
-              <input
-                type="number"
-                step="0.01"
-                value={farm?.milkPricePerKg || 0.42}
-                onChange={(e) => {
-                  const newPrice = parseFloat(e.target.value);
-                  if (farm && !isNaN(newPrice)) {
-                    updateFarmMutation.mutate({
-                      farmId: farm.id,
-                      milkPricePerKg: newPrice,
-                    });
-                  }
-                }}
-                className="w-24 border rounded px-2 py-1 text-right"
-              />
-              <span className="text-gray-500">per kg</span>
+          
+          <div className="space-y-4">
+            {/* Milk Price */}
+            <div className="flex items-center gap-4">
+              <label className="text-gray-600 w-40">Melkprijs:</label>
+              <div className="flex items-center gap-2">
+                <span className="text-gray-500">€</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={farm?.milkPricePerKg || 0.42}
+                  onChange={(e) => {
+                    const newPrice = parseFloat(e.target.value);
+                    if (farm && !isNaN(newPrice)) {
+                      updateFarmMutation.mutate({
+                        farmId: farm.id,
+                        milkPricePerKg: newPrice,
+                      });
+                    }
+                  }}
+                  className="w-24 border rounded px-2 py-1 text-right"
+                />
+                <span className="text-gray-500">per kg</span>
+              </div>
+            </div>
+
+            {/* Young Stock Junior */}
+            <div className="flex items-center gap-4">
+              <label className="text-gray-600 w-40">Jongvee &lt; 1 jaar:</label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  value={farm?.youngStockJuniorCount || 0}
+                  onChange={(e) => {
+                    const count = parseInt(e.target.value);
+                    if (farm && !isNaN(count)) {
+                      updateFarmMutation.mutate({
+                        farmId: farm.id,
+                        youngStockJuniorCount: count,
+                      });
+                    }
+                  }}
+                  className="w-24 border rounded px-2 py-1 text-right"
+                />
+                <span className="text-gray-500">dieren</span>
+                <span className="text-xs text-gray-400">(5 kg DS/dag)</span>
+              </div>
+            </div>
+
+            {/* Young Stock Senior */}
+            <div className="flex items-center gap-4">
+              <label className="text-gray-600 w-40">Jongvee &gt; 1 jaar:</label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  value={farm?.youngStockSeniorCount || 0}
+                  onChange={(e) => {
+                    const count = parseInt(e.target.value);
+                    if (farm && !isNaN(count)) {
+                      updateFarmMutation.mutate({
+                        farmId: farm.id,
+                        youngStockSeniorCount: count,
+                      });
+                    }
+                  }}
+                  className="w-24 border rounded px-2 py-1 text-right"
+                />
+                <span className="text-gray-500">dieren</span>
+                <span className="text-xs text-gray-400">(8 kg DS/dag)</span>
+              </div>
             </div>
           </div>
         </div>

@@ -359,6 +359,93 @@ export function calculateDveProduction(proteinYieldGrams: number): number {
   return DVE_PRODUCTION_LINEAR * proteinYieldGrams + DVE_PRODUCTION_QUADRATIC * Math.pow(proteinYieldGrams, 2);
 }
 
+/**
+ * Calculate VEM pregnancy surcharge (exponential increase after day 190)
+ * Based on CVB 2025 - fetus growth accelerates in final trimester
+ * 
+ * @param daysPregnant - Days pregnant (0-283)
+ * @returns VEM surcharge for pregnancy
+ * 
+ * Formula:
+ * - Days 0-190: 0 VEM (minimal fetal energy demand)
+ * - Days 191-220: 1000 VEM (rapid fetal growth begins)
+ * - Days 221-250: 2000 VEM (exponential growth phase)
+ * - Days 251+: 3000 VEM (final preparation for calving)
+ * 
+ * Source: CVB 2025 Table 3.3, Report 79
+ */
+export function calculateVemPregnancySurcharge(daysPregnant: number): number {
+  if (daysPregnant <= 190) return 0;
+  if (daysPregnant <= 220) return 1000;
+  if (daysPregnant <= 250) return 2000;
+  return 3000;
+}
+
+/**
+ * Calculate VEM growth surcharge for young cows (jeugdgroei)
+ * First and second lactation cows are still growing while producing milk
+ * 
+ * @param parity - Lactation number (1 = first lactation, 2 = second, 3+ = mature)
+ * @returns VEM surcharge for growth
+ * 
+ * Formula:
+ * - Parity 1 (first lactation): +630 VEM/day
+ * - Parity 2 (second lactation): +330 VEM/day
+ * - Parity 3+ (mature): 0 VEM/day
+ * 
+ * Source: CVB 2025 Table 3.4, Report 59 (Jeugdgroei bij Melkkoeien)
+ */
+export function calculateVemGrowthSurcharge(parity: number): number {
+  if (parity === 1) return 630;
+  if (parity === 2) return 330;
+  return 0;
+}
+
+/**
+ * Calculate total VEM requirement including all surcharges
+ * This is the master function that combines all VEM components
+ * 
+ * @param params - All parameters needed for VEM calculation
+ * @returns Total VEM requirement
+ * 
+ * Formula:
+ * VEM_total = VEM_maintenance + VEM_production + VEM_pregnancy + VEM_growth + VEM_grazing
+ */
+export function calculateTotalVemRequirement(params: {
+  bodyWeightKg: number;
+  fpcmKg: number;
+  isLactating?: boolean;
+  daysPregnant?: number;
+  parity?: number;
+  isGrazing?: boolean;
+}): number {
+  const {
+    bodyWeightKg,
+    fpcmKg,
+    isLactating = true,
+    daysPregnant = 0,
+    parity = 3,
+    isGrazing = false
+  } = params;
+
+  // 1. Maintenance (metabolic weight-based)
+  const maintenance = calculateVemMaintenance(bodyWeightKg, isLactating);
+
+  // 2. Production (milk yield)
+  const production = calculateVemProduction(fpcmKg);
+
+  // 3. Pregnancy surcharge (exponential after day 190)
+  const pregnancy = calculateVemPregnancySurcharge(daysPregnant);
+
+  // 4. Growth surcharge (first and second lactation)
+  const growth = calculateVemGrowthSurcharge(parity);
+
+  // 5. Grazing activity surcharge
+  const grazing = isGrazing ? VEM_GRAZING_ACTIVITY : 0;
+
+  return Math.round(maintenance + production + pregnancy + growth + grazing);
+}
+
 // ============================================
 // Grouped Export for Convenience
 // ============================================

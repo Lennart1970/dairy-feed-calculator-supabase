@@ -4,6 +4,7 @@
  */
 
 import { calculateVOC, validateIntake } from './voc';
+import { calculateSubstitutionEffect, type SubstitutionResult } from './substitution';
 import {
   VEM_MAINTENANCE_LACTATING,
   VEM_PER_KG_FPCM,
@@ -34,6 +35,7 @@ export interface FeedData {
   basis: string;
   swPerKgDs: number; // Structure Value per kg DS
   vwPerKgDs?: number; // Verzadigingswaarde (Filling Value) per kg DS
+  category?: string | null; // Feed category (roughage, concentrate, byproduct, mineral)
 }
 
 export interface FeedInput {
@@ -93,6 +95,7 @@ export interface CalculationResult {
   isTargetMet: boolean;
   structureValue?: StructureValueResult;
   vocResult?: VOCResult;
+  substitutionResult?: SubstitutionResult;
 }
 
 // Grazing surcharge constant - using centralized CVB constant
@@ -242,12 +245,34 @@ export function calculateFcm(mprData: MprDataForCalc): number {
  * - Maintenance: VEM_MAINTENANCE_LACTATING × BW^0.75 (metabolic weight)
  * - Production: VEM_PER_KG_FPCM × FPCM
  */
-export function calculateVemRequirementFromMpr(mprData: MprDataForCalc, weightKg: number = 700): number {
+export function calculateVemRequirementFromMpr(
+  mprData: MprDataForCalc, 
+  weightKg: number = 700,
+  vocParams?: { parity: number; daysInMilk: number; daysPregnant: number }
+): number {
   const fpcm = calculateFcm(mprData);
   const metabolicWeight = calculateMetabolicWeight(weightKg);
   const maintenanceVem = VEM_MAINTENANCE_LACTATING * metabolicWeight;
   const productionVem = VEM_PER_KG_FPCM * fpcm;
-  return maintenanceVem + productionVem;
+  
+  // Add pregnancy and growth surcharges if VOC params provided
+  let pregnancySurcharge = 0;
+  let growthSurcharge = 0;
+  
+  if (vocParams) {
+    // Pregnancy surcharge (exponential after day 190)
+    if (vocParams.daysPregnant > 190) {
+      if (vocParams.daysPregnant > 250) pregnancySurcharge = 3000;
+      else if (vocParams.daysPregnant > 220) pregnancySurcharge = 2000;
+      else pregnancySurcharge = 1000;
+    }
+    
+    // Growth surcharge (jeugdgroei for young cows)
+    if (vocParams.parity === 1) growthSurcharge = 630;
+    else if (vocParams.parity === 2) growthSurcharge = 330;
+  }
+  
+  return maintenanceVem + productionVem + pregnancySurcharge + growthSurcharge;
 }
 
 /**
@@ -270,14 +295,15 @@ export function calculateNutrientBalance(
   profile: AnimalProfileData,
   supply: NutrientSupply,
   isGrazing: boolean,
-  mprData?: MprDataForCalc | null
+  mprData?: MprDataForCalc | null,
+  vocParams?: { parity: number; daysInMilk: number; daysPregnant: number }
 ): NutrientBalance[] {
   const mineralReqs = calculateMineralRequirements(profile.weightKg);
   
   // Use FCM-based requirements if MPR data is available, otherwise use profile defaults
   // CVB 2025: Requirements are calculated dynamically based on body weight and production
   const totalVemRequirement = mprData 
-    ? Math.round(calculateVemRequirementFromMpr(mprData, profile.weightKg))
+    ? Math.round(calculateVemRequirementFromMpr(mprData, profile.weightKg, vocParams))
     : profile.vemTarget + (isGrazing ? GRAZING_SURCHARGE_VEM : 0);
   
   const totalDveRequirement = mprData
@@ -536,12 +562,24 @@ export function calculateRation(
   vocParams?: { parity: number; daysInMilk: number; daysPregnant: number }
 ): CalculationResult {
   const totalSupply = calculateTotalSupply(feeds, isGrazing);
-  const balances = calculateNutrientBalance(profile, totalSupply, isGrazing, mprData);
+  const balances = calculateNutrientBalance(profile, totalSupply, isGrazing, mprData, vocParams);
   const prediction = getPerformancePrediction(profile, balances);
   const structureValue = calculateStructureValue(feeds);
   const vocResult = vocParams 
     ? calculateVOCResult(feeds, vocParams.parity, vocParams.daysInMilk, vocParams.daysPregnant)
     : undefined;
+  
+  // Calculate substitution effect (concentrate displacing roughage)
+  const feedsWithCategory = feeds.map(({ feed, input }) => ({
+    category: feed.category ?? 'roughage',  // Default to roughage if not specified
+    kgDs: feed.basis === 'per kg DS' 
+      ? input.amountKg 
+      : input.amountKg * (input.dsPercent / 100)
+  }));
+  const substitutionResult = calculateSubstitutionEffect(
+    feedsWithCategory,
+    profile.maxBdsKg  // Use max BDS as max roughage intake
+  );
   
   return {
     totalSupply,
@@ -550,5 +588,6 @@ export function calculateRation(
     isTargetMet: prediction.isTargetMet,
     structureValue,
     vocResult,
+    substitutionResult,
   };
 }

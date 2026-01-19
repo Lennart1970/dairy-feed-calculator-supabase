@@ -858,7 +858,6 @@ export async function calculateFarmDailyUsage(farmId: number = 1): Promise<Map<n
     return usageMap;
   }
 }
-}
 
 // ============================================
 // Base Ration Functions

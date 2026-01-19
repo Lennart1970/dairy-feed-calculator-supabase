@@ -402,6 +402,8 @@ export const appRouter = router({
         vocLimit: z.number().optional(),
         fpcmDaily: z.number().optional(),
         sortOrder: z.number().optional(),
+        baseRationId: z.number().optional(),
+        concentrateKgPerCow: z.number().optional(),
       }))
       .mutation(async ({ input }) => {
         const updates: Record<string, unknown> = {};
@@ -421,6 +423,8 @@ export const appRouter = router({
         if (input.vocLimit !== undefined) updates.voc_limit = String(input.vocLimit);
         if (input.fpcmDaily !== undefined) updates.fpcm_daily = String(input.fpcmDaily);
         if (input.sortOrder !== undefined) updates.sort_order = input.sortOrder;
+        if (input.baseRationId !== undefined) updates.base_ration_id = input.baseRationId;
+        if (input.concentrateKgPerCow !== undefined) updates.concentrate_kg_per_cow = String(input.concentrateKgPerCow);
         const success = await updateHerdGroup(input.groupId, updates as any);
         return { success };
       }),

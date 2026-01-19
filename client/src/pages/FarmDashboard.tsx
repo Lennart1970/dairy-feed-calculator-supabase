@@ -144,6 +144,51 @@ export default function FarmDashboard() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+        {/* Inventory Alerts - Days Remaining */}
+        {lowStockItems.length > 0 && (
+          <div className="bg-red-50 border-2 border-red-300 rounded-xl p-4 mb-6">
+            <div className="flex items-start gap-3">
+              <span className="text-3xl">🚨</span>
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-red-900 mb-2">Voorraad Waarschuwing</h3>
+                <p className="text-sm text-red-700 mb-3">
+                  {lowStockItems.length} product(en) met minder dan 14 dagen voorraad:
+                </p>
+                <div className="space-y-2">
+                  {lowStockItems.map(item => {
+                    const daysRemaining = Math.floor(item.currentStockKg / item.dailyUsageRateKg);
+                    return (
+                      <div key={item.id} className="bg-white rounded-lg p-3 border border-red-200">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <p className="font-semibold text-gray-900">{item.feed?.displayName}</p>
+                            <p className="text-xs text-gray-500">
+                              {item.currentStockKg.toLocaleString('nl-NL')} kg DS voorraad
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className={`text-2xl font-bold ${
+                              daysRemaining < 7 ? 'text-red-600' : 'text-yellow-600'
+                            }`}>
+                              {daysRemaining}
+                            </p>
+                            <p className="text-xs text-gray-500">dagen</p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <Link href="/voorraad">
+                  <a className="mt-3 inline-block px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium">
+                    → Naar Voorraad Beheer
+                  </a>
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">

@@ -12,6 +12,12 @@ type InventoryItem = {
   dailyUsageRateKg: number;
   lastDeliveryDate: string | null;
   lastDeliveryKg: number | null;
+  storageType: string | null;
+  volumeM3: number | null;
+  densityKgM3: number | null;
+  siloLengthM: number | null;
+  siloWidthM: number | null;
+  siloHeightM: number | null;
   updatedAt: string;
   feed: {
     id: number;
@@ -29,13 +35,23 @@ function calculateDaysRemaining(stock: number, dailyUsage: number): number | nul
   return Math.floor(stock / dailyUsage);
 }
 
-// Get status color based on days remaining
-function getStockStatus(daysRemaining: number | null, minimumStockKg: number, currentStockKg: number): 'critical' | 'warning' | 'ok' {
-  if (currentStockKg <= minimumStockKg) return 'critical';
-  if (daysRemaining === null) return 'ok';
-  if (daysRemaining < 7) return 'critical';
-  if (daysRemaining < 14) return 'warning';
-  return 'ok';
+// Get status color and label based on days remaining
+function getStockStatus(daysRemaining: number | null): {
+  color: string;
+  bgColor: string;
+  label: string;
+  icon: string;
+} {
+  if (daysRemaining === null) {
+    return { color: 'text-gray-600', bgColor: 'bg-gray-100', label: 'Onbekend', icon: '❓' };
+  }
+  if (daysRemaining < 180) {
+    return { color: 'text-red-600', bgColor: 'bg-red-100', label: 'Tekort', icon: '🚨' };
+  }
+  if (daysRemaining < 365) {
+    return { color: 'text-yellow-600', bgColor: 'bg-yellow-100', label: 'Adequaat', icon: '⚠️' };
+  }
+  return { color: 'text-green-600', bgColor: 'bg-green-100', label: 'Overschot', icon: '✅' };
 }
 
 // Format date for display
@@ -51,6 +67,14 @@ export default function Inventory() {
   const [showDeliveryForm, setShowDeliveryForm] = useState<number | null>(null);
   const [deliveryAmount, setDeliveryAmount] = useState<string>('');
   const [filterCategory, setFilterCategory] = useState<string>('all');
+  const [showSiloCalculator, setShowSiloCalculator] = useState<number | null>(null);
+  
+  // Silo calculator state
+  const [siloLength, setSiloLength] = useState<string>('');
+  const [siloWidth, setSiloWidth] = useState<string>('');
+  const [siloHeight, setSiloHeight] = useState<string>('');
+  const [siloDensity, setSiloDensity] = useState<string>('240');
+  const [siloDsPercent, setSiloDsPercent] = useState<string>('45');
 
   // Fetch inventory data
   const { data: inventory, refetch } = trpc.inventory.list.useQuery();
@@ -88,6 +112,45 @@ export default function Inventory() {
     }
   };
 
+  // Calculate stock from silo dimensions
+  const calculateStockFromSilo = () => {
+    const length = parseFloat(siloLength);
+    const width = parseFloat(siloWidth);
+    const height = parseFloat(siloHeight);
+    const density = parseFloat(siloDensity);
+    const dsPercent = parseFloat(siloDsPercent);
+
+    if (isNaN(length) || isNaN(width) || isNaN(height) || isNaN(density) || isNaN(dsPercent)) {
+      return null;
+    }
+
+    const volumeM3 = length * width * height;
+    const totalKg = volumeM3 * density;
+    const totalKgDs = totalKg * (dsPercent / 100);
+
+    return {
+      volumeM3: volumeM3.toFixed(2),
+      totalKg: totalKg.toFixed(0),
+      totalKgDs: totalKgDs.toFixed(0),
+    };
+  };
+
+  const siloCalculation = calculateStockFromSilo();
+
+  // Handle silo calculator save
+  const handleSaveSiloCalculation = (feedId: number) => {
+    if (siloCalculation) {
+      updateStockMutation.mutate({ 
+        feedId, 
+        currentStockKg: parseFloat(siloCalculation.totalKgDs) 
+      });
+      setShowSiloCalculator(null);
+      setSiloLength('');
+      setSiloWidth('');
+      setSiloHeight('');
+    }
+  };
+
   // Get unique categories
   const categories = [...new Set(inventory?.map(item => item.feed?.category).filter(Boolean))];
 
@@ -96,21 +159,8 @@ export default function Inventory() {
     ? inventory 
     : inventory?.filter(item => item.feed?.category === filterCategory);
 
-  // Calculate totals
-  const totals = {
-    totalItems: filteredInventory?.length || 0,
-    criticalItems: filteredInventory?.filter(item => {
-      const days = calculateDaysRemaining(item.currentStockKg, item.dailyUsageRateKg);
-      return getStockStatus(days, item.minimumStockKg, item.currentStockKg) === 'critical';
-    }).length || 0,
-    warningItems: filteredInventory?.filter(item => {
-      const days = calculateDaysRemaining(item.currentStockKg, item.dailyUsageRateKg);
-      return getStockStatus(days, item.minimumStockKg, item.currentStockKg) === 'warning';
-    }).length || 0,
-  };
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50">
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
       {/* Header */}
       <header className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
@@ -119,7 +169,7 @@ export default function Inventory() {
               <span className="text-3xl">📦</span>
               <div>
                 <h1 className="text-xl font-bold text-gray-900">Voorraad Beheer</h1>
-                <p className="text-sm text-gray-500">Voorraden bijhouden en leveringen registreren</p>
+                <p className="text-sm text-gray-500">Ruwvoerpositie & Voorraden</p>
               </div>
             </div>
             <Link href="/dashboard">
@@ -132,252 +182,285 @@ export default function Inventory() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500">Totaal Producten</p>
-                <p className="text-3xl font-bold text-gray-900">{totals.totalItems}</p>
-              </div>
-              <span className="text-4xl">📦</span>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-red-200 bg-red-50">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-red-600">Kritiek (&lt;7 dagen)</p>
-                <p className="text-3xl font-bold text-red-600">{totals.criticalItems}</p>
-              </div>
-              <span className="text-4xl">🚨</span>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-yellow-200 bg-yellow-50">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-yellow-700">Waarschuwing (&lt;14 dagen)</p>
-                <p className="text-3xl font-bold text-yellow-600">{totals.warningItems}</p>
-              </div>
-              <span className="text-4xl">⚠️</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Filter */}
-        <div className="bg-white rounded-xl shadow-sm p-4 mb-6 border border-gray-100">
-          <div className="flex items-center gap-4">
-            <label className="text-sm font-medium text-gray-700">Filter op categorie:</label>
-            <select
-              value={filterCategory}
-              onChange={(e) => setFilterCategory(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        {/* Category Filter */}
+        <div className="mb-6 flex gap-2 flex-wrap">
+          <button
+            onClick={() => setFilterCategory('all')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              filterCategory === 'all'
+                ? 'bg-green-600 text-white'
+                : 'bg-white text-gray-700 hover:bg-gray-100'
+            }`}
+          >
+            Alle Producten
+          </button>
+          {categories.map((category) => (
+            <button
+              key={category}
+              onClick={() => setFilterCategory(category as string)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                filterCategory === category
+                  ? 'bg-green-600 text-white'
+                  : 'bg-white text-gray-700 hover:bg-gray-100'
+              }`}
             >
-              <option value="all">Alle categorieën</option>
-              {categories.map(cat => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
-            </select>
-          </div>
+              {category}
+            </button>
+          ))}
         </div>
 
-        {/* Inventory Table */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Product</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Voorraad (kg)</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Verbruik/dag</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Dagen Resterend</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Laatste Levering</th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Acties</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {filteredInventory?.map((item) => {
-                  const daysRemaining = calculateDaysRemaining(item.currentStockKg, item.dailyUsageRateKg);
-                  const status = getStockStatus(daysRemaining, item.minimumStockKg, item.currentStockKg);
-                  
-                  return (
-                    <tr key={item.id} className={`hover:bg-gray-50 ${status === 'critical' ? 'bg-red-50' : status === 'warning' ? 'bg-yellow-50' : ''}`}>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <span className="text-2xl">
-                            {item.feed?.category === 'ruwvoer' ? '🌾' : 
-                             item.feed?.category === 'krachtvoer' ? '🌽' : '📦'}
-                          </span>
-                          <div>
-                            <div className="font-medium text-gray-900">{item.feed?.displayName || 'Onbekend'}</div>
-                            <div className="text-xs text-gray-500">{item.feed?.category}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        {editingStock === item.feedId ? (
-                          <div className="flex items-center justify-end gap-2">
-                            <input
-                              type="number"
-                              value={stockValue}
-                              onChange={(e) => setStockValue(e.target.value)}
-                              className="w-24 border rounded px-2 py-1 text-right"
-                              autoFocus
-                            />
-                            <button
-                              onClick={() => handleSaveStock(item.feedId)}
-                              className="text-green-600 hover:text-green-800"
-                            >
-                              ✓
-                            </button>
-                            <button
-                              onClick={() => setEditingStock(null)}
-                              className="text-red-600 hover:text-red-800"
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        ) : (
-                          <span 
-                            className="cursor-pointer hover:text-blue-600"
-                            onClick={() => {
-                              setEditingStock(item.feedId);
-                              setStockValue(item.currentStockKg.toString());
-                            }}
-                          >
-                            {item.currentStockKg.toLocaleString('nl-NL')} kg
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 text-right text-gray-600">
-                        {item.dailyUsageRateKg > 0 ? `${item.dailyUsageRateKg.toLocaleString('nl-NL')} kg` : '-'}
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        {daysRemaining !== null ? (
-                          <span className={`font-medium ${
-                            status === 'critical' ? 'text-red-600' :
-                            status === 'warning' ? 'text-yellow-600' :
-                            'text-green-600'
-                          }`}>
-                            {daysRemaining} dagen
-                          </span>
-                        ) : (
-                          <span className="text-gray-400">-</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 text-right text-gray-500">
-                        <div>{formatDate(item.lastDeliveryDate)}</div>
-                        {item.lastDeliveryKg && (
-                          <div className="text-xs">{item.lastDeliveryKg.toLocaleString('nl-NL')} kg</div>
-                        )}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center justify-center gap-2">
-                          {showDeliveryForm === item.feedId ? (
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="number"
-                                placeholder="kg"
-                                value={deliveryAmount}
-                                onChange={(e) => setDeliveryAmount(e.target.value)}
-                                className="w-20 border rounded px-2 py-1 text-right text-sm"
-                                autoFocus
-                              />
-                              <button
-                                onClick={() => handleRecordDelivery(item.feedId)}
-                                className="text-green-600 hover:text-green-800 text-sm px-2 py-1 bg-green-100 rounded"
-                              >
-                                Opslaan
-                              </button>
-                              <button
-                                onClick={() => setShowDeliveryForm(null)}
-                                className="text-gray-600 hover:text-gray-800 text-sm"
-                              >
-                                ✕
-                              </button>
-                            </div>
-                          ) : (
-                            <button
-                              onClick={() => {
-                                setShowDeliveryForm(item.feedId);
-                                setDeliveryAmount('');
-                              }}
-                              className="text-blue-600 hover:text-blue-800 text-sm px-3 py-1 border border-blue-200 rounded hover:bg-blue-50"
-                            >
-                              + Levering
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        {/* Inventory Items */}
+        <div className="space-y-4">
+          {filteredInventory?.map((item) => {
+            const daysRemaining = calculateDaysRemaining(item.currentStockKg, item.dailyUsageRateKg);
+            const status = getStockStatus(daysRemaining);
+            const progressPercent = daysRemaining ? Math.min((daysRemaining / 365) * 100, 100) : 0;
 
-        {/* Legend */}
-        <div className="mt-6 bg-white rounded-xl shadow-sm p-4 border border-gray-100">
-          <h3 className="text-sm font-medium text-gray-700 mb-3">Legenda</h3>
-          <div className="flex flex-wrap gap-4 text-sm">
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded bg-red-100 border border-red-300"></div>
-              <span className="text-gray-600">Kritiek: &lt;7 dagen voorraad</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded bg-yellow-100 border border-yellow-300"></div>
-              <span className="text-gray-600">Waarschuwing: &lt;14 dagen voorraad</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded bg-white border border-gray-300"></div>
-              <span className="text-gray-600">OK: ≥14 dagen voorraad</span>
-            </div>
-          </div>
-        </div>
+            return (
+              <div key={item.id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      {item.feed?.displayName || 'Onbekend Product'}
+                    </h3>
+                    <p className="text-sm text-gray-500">{item.feed?.category}</p>
+                  </div>
+                  <div className={`px-3 py-1 rounded-full text-sm font-medium ${status.bgColor} ${status.color} flex items-center gap-1`}>
+                    <span>{status.icon}</span>
+                    <span>{status.label}</span>
+                  </div>
+                </div>
 
-        {/* Order Advice Section */}
-        {(totals.criticalItems > 0 || totals.warningItems > 0) && (
-          <div className="mt-6 bg-gradient-to-r from-orange-50 to-yellow-50 rounded-xl shadow-sm p-6 border border-orange-200">
-            <h3 className="text-lg font-semibold text-orange-800 flex items-center gap-2 mb-4">
-              📋 Besteladvies
-            </h3>
-            <div className="space-y-3">
-              {filteredInventory?.filter(item => {
-                const days = calculateDaysRemaining(item.currentStockKg, item.dailyUsageRateKg);
-                const status = getStockStatus(days, item.minimumStockKg, item.currentStockKg);
-                return status === 'critical' || status === 'warning';
-              }).map(item => {
-                const daysRemaining = calculateDaysRemaining(item.currentStockKg, item.dailyUsageRateKg);
-                // Calculate suggested order: enough for 30 days
-                const suggestedOrder = item.dailyUsageRateKg > 0 
-                  ? Math.ceil((30 * item.dailyUsageRateKg) - item.currentStockKg)
-                  : 0;
-                
-                return (
-                  <div key={item.id} className="flex items-center justify-between bg-white rounded-lg p-3 border border-orange-100">
-                    <div className="flex items-center gap-3">
-                      <span className={`text-lg ${daysRemaining !== null && daysRemaining < 7 ? '🚨' : '⚠️'}`}></span>
-                      <div>
-                        <span className="font-medium text-gray-900">{item.feed?.displayName}</span>
-                        <span className="text-sm text-gray-500 ml-2">
-                          ({daysRemaining !== null ? `${daysRemaining} dagen` : 'onbekend verbruik'})
-                        </span>
-                      </div>
+                {/* Progress Bar */}
+                {daysRemaining !== null && (
+                  <div className="mb-4">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm font-medium text-gray-700">Dagen Voorraad</span>
+                      <span className={`text-lg font-bold ${status.color}`}>
+                        {daysRemaining} dagen
+                      </span>
                     </div>
-                    {suggestedOrder > 0 && (
-                      <div className="text-right">
-                        <span className="text-orange-700 font-medium">
-                          Bestel: {suggestedOrder.toLocaleString('nl-NL')} kg
-                        </span>
-                        <span className="text-xs text-gray-500 block">voor 30 dagen voorraad</span>
+                    <div className="w-full bg-gray-200 rounded-full h-3">
+                      <div
+                        className={`h-3 rounded-full transition-all ${
+                          daysRemaining < 180 ? 'bg-red-500' : 
+                          daysRemaining < 365 ? 'bg-yellow-500' : 
+                          'bg-green-500'
+                        }`}
+                        style={{ width: `${progressPercent}%` }}
+                      />
+                    </div>
+                    <div className="flex justify-between text-xs text-gray-500 mt-1">
+                      <span>0 dagen</span>
+                      <span>180 dagen</span>
+                      <span>365 dagen</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Stock Details */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                  <div>
+                    <p className="text-xs text-gray-500">Huidige Voorraad</p>
+                    {editingStock === item.id ? (
+                      <div className="flex gap-1">
+                        <input
+                          type="number"
+                          value={stockValue}
+                          onChange={(e) => setStockValue(e.target.value)}
+                          className="w-20 border rounded px-2 py-1 text-sm"
+                          autoFocus
+                        />
+                        <button
+                          onClick={() => handleSaveStock(item.feedId)}
+                          className="text-green-600 hover:text-green-800"
+                        >
+                          ✓
+                        </button>
+                        <button
+                          onClick={() => setEditingStock(null)}
+                          className="text-red-600 hover:text-red-800"
+                        >
+                          ✕
+                        </button>
                       </div>
+                    ) : (
+                      <p
+                        className="text-sm font-semibold text-gray-900 cursor-pointer hover:text-green-600"
+                        onClick={() => {
+                          setEditingStock(item.id);
+                          setStockValue(item.currentStockKg.toString());
+                        }}
+                      >
+                        {item.currentStockKg.toLocaleString('nl-NL')} kg DS ✏️
+                      </p>
                     )}
                   </div>
-                );
-              })}
-            </div>
+
+                  <div>
+                    <p className="text-xs text-gray-500">Dagelijks Verbruik</p>
+                    <p className="text-sm font-semibold text-gray-900">
+                      {item.dailyUsageRateKg.toLocaleString('nl-NL')} kg/dag
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="text-xs text-gray-500">Laatste Levering</p>
+                    <p className="text-sm font-semibold text-gray-900">
+                      {item.lastDeliveryKg ? `${item.lastDeliveryKg.toLocaleString('nl-NL')} kg` : '-'}
+                    </p>
+                    <p className="text-xs text-gray-400">{formatDate(item.lastDeliveryDate)}</p>
+                  </div>
+
+                  <div>
+                    <p className="text-xs text-gray-500">Minimale Voorraad</p>
+                    <p className="text-sm font-semibold text-gray-900">
+                      {item.minimumStockKg.toLocaleString('nl-NL')} kg DS
+                    </p>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setShowSiloCalculator(item.id)}
+                    className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors text-sm font-medium"
+                  >
+                    📏 Silo Berekenen
+                  </button>
+                  <button
+                    onClick={() => setShowDeliveryForm(item.id)}
+                    className="px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors text-sm font-medium"
+                  >
+                    📦 Levering Registreren
+                  </button>
+                </div>
+
+                {/* Silo Calculator */}
+                {showSiloCalculator === item.id && (
+                  <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <h4 className="text-sm font-semibold text-blue-900 mb-3">Silo Calculator (m³ → kg DS)</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-3">
+                      <div>
+                        <label className="text-xs text-gray-600">Lengte (m)</label>
+                        <input
+                          type="number"
+                          step="0.1"
+                          value={siloLength}
+                          onChange={(e) => setSiloLength(e.target.value)}
+                          className="w-full border rounded px-2 py-1 text-sm"
+                          placeholder="bijv. 50"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-gray-600">Breedte (m)</label>
+                        <input
+                          type="number"
+                          step="0.1"
+                          value={siloWidth}
+                          onChange={(e) => setSiloWidth(e.target.value)}
+                          className="w-full border rounded px-2 py-1 text-sm"
+                          placeholder="bijv. 10"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-gray-600">Hoogte (m)</label>
+                        <input
+                          type="number"
+                          step="0.1"
+                          value={siloHeight}
+                          onChange={(e) => setSiloHeight(e.target.value)}
+                          className="w-full border rounded px-2 py-1 text-sm"
+                          placeholder="bijv. 2.5"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-gray-600">Dichtheid (kg/m³)</label>
+                        <input
+                          type="number"
+                          value={siloDensity}
+                          onChange={(e) => setSiloDensity(e.target.value)}
+                          className="w-full border rounded px-2 py-1 text-sm"
+                          placeholder="240 (gras) / 250 (maïs)"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-gray-600">DS %</label>
+                        <input
+                          type="number"
+                          value={siloDsPercent}
+                          onChange={(e) => setSiloDsPercent(e.target.value)}
+                          className="w-full border rounded px-2 py-1 text-sm"
+                          placeholder="bijv. 45"
+                        />
+                      </div>
+                    </div>
+
+                    {siloCalculation && (
+                      <div className="bg-white p-3 rounded border border-blue-300 mb-3">
+                        <p className="text-xs text-gray-600 mb-1">Berekening:</p>
+                        <p className="text-sm font-mono text-gray-700">
+                          Volume: {siloCalculation.volumeM3} m³<br />
+                          Totaal: {siloCalculation.totalKg} kg product<br />
+                          <strong>Droge Stof: {siloCalculation.totalKgDs} kg DS</strong>
+                        </p>
+                      </div>
+                    )}
+
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleSaveSiloCalculation(item.feedId)}
+                        disabled={!siloCalculation}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium disabled:opacity-50"
+                      >
+                        Opslaan
+                      </button>
+                      <button
+                        onClick={() => setShowSiloCalculator(null)}
+                        className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors text-sm font-medium"
+                      >
+                        Annuleren
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Delivery Form */}
+                {showDeliveryForm === item.id && (
+                  <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <h4 className="text-sm font-semibold text-green-900 mb-3">Levering Registreren</h4>
+                    <div className="flex gap-2">
+                      <input
+                        type="number"
+                        value={deliveryAmount}
+                        onChange={(e) => setDeliveryAmount(e.target.value)}
+                        placeholder="Hoeveelheid (kg DS)"
+                        className="flex-1 border rounded px-3 py-2 text-sm"
+                      />
+                      <button
+                        onClick={() => handleRecordDelivery(item.feedId)}
+                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+                      >
+                        Opslaan
+                      </button>
+                      <button
+                        onClick={() => setShowDeliveryForm(null)}
+                        className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors text-sm font-medium"
+                      >
+                        Annuleren
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {filteredInventory?.length === 0 && (
+          <div className="text-center py-12 text-gray-500">
+            <span className="text-5xl mb-4 block">📦</span>
+            <p>Geen voorraad gevonden voor deze categorie.</p>
           </div>
         )}
       </main>

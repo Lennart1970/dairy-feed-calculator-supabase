@@ -424,6 +424,12 @@ export interface InventoryItem {
   daily_usage_rate_kg: string;
   last_delivery_date: string | null;
   last_delivery_kg: string | null;
+  storage_type: string | null;
+  volume_m3: string | null;
+  density_kg_m3: string | null;
+  silo_length_m: string | null;
+  silo_width_m: string | null;
+  silo_height_m: string | null;
   updated_at: string;
   // Joined feed data
   feed?: Feed;

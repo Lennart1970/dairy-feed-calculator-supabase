@@ -34,7 +34,7 @@ const defaultFormData: GroupFormData = {
   lifeStage: 'lactating',
 };
 
-// Calculate requirements for a herd group
+// Calculate detailed requirements with breakdown
 function calculateGroupRequirements(group: GroupFormData) {
   if (group.lifeStage === 'dry') {
     const vemMaintenance = 42.4 * Math.pow(group.avgWeightKg, 0.75);
@@ -359,6 +359,58 @@ export default function HerdGroups() {
                   Totaal voor groep: {(previewRequirements.vem * formData.cowCount).toLocaleString('nl-NL')} VEM, {((previewRequirements.dve * formData.cowCount) / 1000).toFixed(1)} kg DVE
                 </p>
               </div>
+
+              {/* Detailed Calculation Breakdown */}
+              {formData.lifeStage === 'lactating' && (
+                <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <h3 className="text-sm font-semibold text-blue-900 mb-3 flex items-center gap-2">
+                    <span>🔍</span> Berekeningsdetails (CVB 2025)
+                  </h3>
+                  
+                  {/* FPCM Calculation */}
+                  <div className="mb-3 pb-3 border-b border-blue-200">
+                    <p className="text-xs font-medium text-blue-800 mb-1">1. FPCM (Vet- en Eiwitgecorrigeerde Melk)</p>
+                    <p className="text-xs text-gray-700 font-mono bg-white p-2 rounded">
+                      FPCM = Melk × (0.337 + 0.116 × Vet% + 0.06 × Eiwit%)<br/>
+                      FPCM = {formData.avgMilkYieldKg} × (0.337 + 0.116 × {formData.avgFatPercent} + 0.06 × {formData.avgProteinPercent})<br/>
+                      FPCM = {formData.avgMilkYieldKg} × {(0.337 + 0.116 * formData.avgFatPercent + 0.06 * formData.avgProteinPercent).toFixed(3)}<br/>
+                      <strong>FPCM = {previewRequirements.fpcm.toFixed(1)} kg</strong>
+                    </p>
+                  </div>
+
+                  {/* VEM Calculation */}
+                  <div className="mb-3 pb-3 border-b border-blue-200">
+                    <p className="text-xs font-medium text-blue-800 mb-1">2. VEM (Energie)</p>
+                    <p className="text-xs text-gray-700 font-mono bg-white p-2 rounded">
+                      VEM = VEM_onderhoud + VEM_productie<br/>
+                      VEM_onderhoud = 53.0 × Gewicht^0.75<br/>
+                      VEM_onderhoud = 53.0 × {formData.avgWeightKg}^0.75 = {Math.round(53.0 * Math.pow(formData.avgWeightKg, 0.75))}<br/>
+                      VEM_productie = 390 × FPCM<br/>
+                      VEM_productie = 390 × {previewRequirements.fpcm.toFixed(1)} = {Math.round(390 * previewRequirements.fpcm)}<br/>
+                      <strong>VEM_totaal = {Math.round(53.0 * Math.pow(formData.avgWeightKg, 0.75))} + {Math.round(390 * previewRequirements.fpcm)} = {previewRequirements.vem}</strong>
+                    </p>
+                  </div>
+
+                  {/* DVE Calculation */}
+                  <div>
+                    <p className="text-xs font-medium text-blue-800 mb-1">3. DVE (Eiwit)</p>
+                    <p className="text-xs text-gray-700 font-mono bg-white p-2 rounded">
+                      DVE = DVE_onderhoud + DVE_productie<br/>
+                      DVE_onderhoud = 54 + 0.1 × Gewicht<br/>
+                      DVE_onderhoud = 54 + 0.1 × {formData.avgWeightKg} = {Math.round(54 + 0.1 * formData.avgWeightKg)}g<br/>
+                      Eiwitopbrengst = Melk × Eiwit% × 1000<br/>
+                      Eiwitopbrengst = {formData.avgMilkYieldKg} × {formData.avgProteinPercent}% × 1000 = {Math.round(formData.avgMilkYieldKg * formData.avgProteinPercent * 10)}g<br/>
+                      DVE_productie = 1.396 × Eiwitopbrengst + 0.000195 × Eiwitopbrengst²<br/>
+                      DVE_productie = {Math.round(1.396 * formData.avgMilkYieldKg * formData.avgProteinPercent * 10 + 0.000195 * Math.pow(formData.avgMilkYieldKg * formData.avgProteinPercent * 10, 2))}g<br/>
+                      <strong>DVE_totaal = {Math.round(54 + 0.1 * formData.avgWeightKg)} + {Math.round(1.396 * formData.avgMilkYieldKg * formData.avgProteinPercent * 10 + 0.000195 * Math.pow(formData.avgMilkYieldKg * formData.avgProteinPercent * 10, 2))} = {previewRequirements.dve}g</strong>
+                    </p>
+                  </div>
+
+                  <p className="text-xs text-blue-600 mt-3 italic">
+                    📚 Bron: CVB Veevoedertabel 2025 - Tabel 3.1, 3.2, 4.1, 4.2
+                  </p>
+                </div>
+              )}
 
               {/* Form Actions */}
               <div className="mt-6 flex gap-3">

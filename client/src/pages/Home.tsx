@@ -339,6 +339,11 @@ export default function Home() {
     }
   }, [databaseRoughageFeeds, hasInitializedFromDb]);
   const [isGrazing, setIsGrazing] = useState(false);
+  
+  // Physiological parameters for VOC and VEM surcharges
+  const [parity, setParity] = useState<number>(3); // Default: mature cow (3+ lactations)
+  const [daysInMilk, setDaysInMilk] = useState<number>(150); // Default: mid-lactation
+  const [daysPregnant, setDaysPregnant] = useState<number>(0); // Default: not pregnant
   const [showUploadForm, setShowUploadForm] = useState(false);
   const [nextFeedId, setNextFeedId] = useState(4); // Start after default feeds
 
@@ -435,9 +440,9 @@ export default function Home() {
           name: selectedProfileName,
           weightKg: 700, // Default weight, will be overridden by profile
         },
-        'Volwassen (2+ lactaties)', // Default parity
-        '>100 dagen (midden/late lactatie)', // Default DIM
-        'Niet drachtig', // Default pregnancy
+        parity,
+        daysInMilk,
+        daysPregnant,
         mprData,
         isGrazing
       );
@@ -445,7 +450,7 @@ export default function Home() {
     } catch (error) {
       console.error('Auditable calculation error:', error);
     }
-  }, [roughageFeeds, concentrateFeeds, concentrateFeedInputs, selectedProfileName, mprData, isGrazing]);
+  }, [roughageFeeds, concentrateFeeds, concentrateFeedInputs, selectedProfileName, mprData, isGrazing, parity, daysInMilk, daysPregnant]);
 
   // Check if selected profile is a lactating cow (show MPR for milk-producing animals)
   const isLactatingCow = selectedProfileName && (
@@ -540,6 +545,12 @@ export default function Home() {
                   onMprChange={handleMprChange}
                   onProfileChange={handleProfileChange}
                   initialProfileName={selectedProfileName}
+                  parity={parity}
+                  daysInMilk={daysInMilk}
+                  daysPregnant={daysPregnant}
+                  onParityChange={setParity}
+                  onDaysInMilkChange={setDaysInMilk}
+                  onDaysPregnantChange={setDaysPregnant}
                 />
               </div>
 

@@ -151,9 +151,9 @@ export function runAuditableCalculation(
     name: string;
     weightKg: number;
   },
-  paritySelection?: string,
-  daysInMilkSelection?: string,
-  pregnancySelection?: string,
+  paritySelection: string | number,
+  daysInMilkSelection: string | number,
+  pregnancySelection: string | number,
   mprData?: MprData | null,
   isGrazing: boolean = false
 ): AuditableCalculationResult {
@@ -215,9 +215,9 @@ export function runAuditableCalculation(
     animalProfile: {
       name: animalProfile.name,
       weightKg: animalProfile.weightKg,
-      parity: parityToNumber(paritySelection),
-      daysInMilk: daysInMilkToNumber(daysInMilkSelection),
-      daysPregnant: daysPregnantToNumber(pregnancySelection),
+      parity: typeof paritySelection === 'number' ? paritySelection : parityToNumber(paritySelection),
+      daysInMilk: typeof daysInMilkSelection === 'number' ? daysInMilkSelection : daysInMilkToNumber(daysInMilkSelection),
+      daysPregnant: typeof pregnancySelection === 'number' ? pregnancySelection : daysPregnantToNumber(pregnancySelection),
       isLactating,
     },
     milkProduction: mprData ? {

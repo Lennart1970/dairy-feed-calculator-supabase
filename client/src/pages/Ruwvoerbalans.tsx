@@ -218,6 +218,68 @@ export default function Ruwvoerbalans() {
               </div>
             </div>
 
+            {/* Rule of Thumb Calculation */}
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl shadow-lg p-6 mb-6 border-2 border-blue-200">
+              <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                📐 Vuistregel Berekening (CVB 2025)
+              </h2>
+              
+              <div className="bg-white rounded-lg p-4 mb-4">
+                <h3 className="font-semibold text-gray-700 mb-3">Ruwvoerbehoefte per dier per dag:</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="flex items-center gap-3 p-3 bg-orange-50 rounded-lg">
+                    <span className="text-3xl">🐄</span>
+                    <div>
+                      <div className="text-sm text-gray-600">Melkkoe</div>
+                      <div className="text-xl font-bold text-orange-600">15 kg DS/dag</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg">
+                    <span className="text-3xl">🐮</span>
+                    <div>
+                      <div className="text-sm text-gray-600">Jongvee &lt;1 jaar</div>
+                      <div className="text-xl font-bold text-green-600">5 kg DS/dag</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
+                    <span className="text-3xl">🐂</span>
+                    <div>
+                      <div className="text-sm text-gray-600">Jongvee &gt;1 jaar</div>
+                      <div className="text-xl font-bold text-blue-600">8 kg DS/dag</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-lg p-4">
+                <h3 className="font-semibold text-gray-700 mb-3">Jaarlijkse Behoefte Berekening:</h3>
+                <div className="space-y-2 font-mono text-sm">
+                  <div className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                    <span className="text-gray-700">{totalCows} koeien × 15 kg/dag × 365 dagen</span>
+                    <span className="font-bold text-orange-600">= {((totalCows * 15 * 365) / 1000).toFixed(1)} ton DS</span>
+                  </div>
+                  <div className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                    <span className="text-gray-700">{farm.youngStockJuniorCount || 0} jongvee (&lt;1j) × 5 kg/dag × 365 dagen</span>
+                    <span className="font-bold text-green-600">= {(((farm.youngStockJuniorCount || 0) * 5 * 365) / 1000).toFixed(1)} ton DS</span>
+                  </div>
+                  <div className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                    <span className="text-gray-700">{farm.youngStockSeniorCount || 0} jongvee (&gt;1j) × 8 kg/dag × 365 dagen</span>
+                    <span className="font-bold text-blue-600">= {(((farm.youngStockSeniorCount || 0) * 8 * 365) / 1000).toFixed(1)} ton DS</span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 bg-indigo-100 rounded-lg border-2 border-indigo-300 mt-3">
+                    <span className="font-bold text-gray-800">Totale Jaarlijkse Behoefte:</span>
+                    <span className="font-bold text-2xl text-indigo-700">{(demand / 1000).toFixed(1)} ton DS</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-4 p-3 bg-blue-100 border border-blue-300 rounded-lg">
+                <p className="text-sm text-blue-800">
+                  <strong>Bron:</strong> AgruniekRijnvallei Voorraadgids, CVB 2025 Tabellenboek Veevoeding
+                </p>
+              </div>
+            </div>
+
             {/* Supply & Demand Summary */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
               <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg p-6 text-white">

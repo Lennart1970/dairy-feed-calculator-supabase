@@ -81,6 +81,22 @@ export interface ProfileDefaultRation {
   created_at: string;
 }
 
+export interface Farm {
+  id: number;
+  name: string;
+  milk_price_per_kg: number;
+  young_stock_junior_count: number;
+  young_stock_senior_count: number;
+  hectares_maize: number;
+  hectares_grass: number;
+  yield_maize_ton_ds_ha: number;
+  yield_grass_ton_ds_ha: number;
+  quality_level: 'topkwaliteit' | 'gemiddeld' | 'sober';
+  created_at?: string;
+  updated_at?: string;
+}
+
+
 // ============================================
 // User Queries
 // ============================================
@@ -841,4 +857,3 @@ export async function calculateFarmDailyUsage(farmId: number = 1): Promise<Map<n
     console.error("[Database] Failed to calculate farm daily usage:", error);
     return usageMap;
   }
-}

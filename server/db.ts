@@ -857,3 +857,4 @@ export async function calculateFarmDailyUsage(farmId: number = 1): Promise<Map<n
     console.error("[Database] Failed to calculate farm daily usage:", error);
     return usageMap;
   }
+}

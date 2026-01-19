@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'wouter';
+import { trpc } from '../lib/trpc';
 import { 
   calculateAnnualSupply, 
   calculateAnnualDemand, 
@@ -10,24 +11,12 @@ import {
   type QualityLevel 
 } from '../lib/modeBConstants';
 
-interface Farm {
-  id: number;
-  name: string;
-  milk_price_per_kg: number;
-  young_stock_junior_count: number;
-  young_stock_senior_count: number;
-  hectares_maize: number;
-  hectares_grass: number;
-  yield_maize_ton_ds_ha: number;
-  yield_grass_ton_ds_ha: number;
-  quality_level: QualityLevel;
-}
-
 export default function Ruwvoerbalans() {
   const [mode, setMode] = useState<'current' | 'forecast'>('forecast');
-  const [farm, setFarm] = useState<Farm | null>(null);
-  const [totalCows, setTotalCows] = useState(0);
-  const [loading, setLoading] = useState(true);
+
+  // Fetch data using tRPC
+  const { data: farm } = trpc.farm.get.useQuery();
+  const { data: groups } = trpc.herdGroups.list.useQuery();
 
   // Form state for Mode B
   const [hectaresMaize, setHectaresMaize] = useState(8.0);
@@ -36,38 +25,21 @@ export default function Ruwvoerbalans() {
   const [yieldGrass, setYieldGrass] = useState(11.0);
   const [qualityLevel, setQualityLevel] = useState<QualityLevel>('topkwaliteit');
 
+  // Initialize form with farm data when it loads
   useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
-    try {
-      // Fetch farm data
-      const farmRes = await fetch('/api/farms/1');
-      const farmData = await farmRes.json();
-      setFarm(farmData);
-      
-      // Initialize form with farm data
-      setHectaresMaize(farmData.hectares_maize || 8.0);
-      setHectaresGrass(farmData.hectares_grass || 32.0);
-      setYieldMaize(farmData.yield_maize_ton_ds_ha || 12.0);
-      setYieldGrass(farmData.yield_grass_ton_ds_ha || 11.0);
-      setQualityLevel(farmData.quality_level || 'topkwaliteit');
-
-      // Fetch total cow count
-      const groupsRes = await fetch('/api/herd-groups?farmId=1');
-      const groups = await groupsRes.json();
-      const total = groups.reduce((sum: number, g: any) => sum + g.cow_count, 0);
-      setTotalCows(total);
-
-      setLoading(false);
-    } catch (error) {
-      console.error('Failed to fetch data:', error);
-      setLoading(false);
+    if (farm) {
+      setHectaresMaize(farm.hectaresMaize || 8.0);
+      setHectaresGrass(farm.hectaresGrass || 32.0);
+      setYieldMaize(farm.yieldMaizeTonDsHa || 12.0);
+      setYieldGrass(farm.yieldGrassTonDsHa || 11.0);
+      setQualityLevel(farm.qualityLevel || 'topkwaliteit');
     }
-  };
+  }, [farm]);
 
-  if (loading || !farm) {
+  // Calculate total cows
+  const totalCows = groups?.reduce((sum, g) => sum + g.cowCount, 0) || 0;
+
+  if (!farm || !groups) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 p-8">
         <div className="max-w-6xl mx-auto">
@@ -87,8 +59,8 @@ export default function Ruwvoerbalans() {
 
   const demand = calculateAnnualDemand(
     totalCows,
-    farm.young_stock_junior_count,
-    farm.young_stock_senior_count
+    farm.youngStockJuniorCount || 0,
+    farm.youngStockSeniorCount || 0
   );
 
   const deficit = calculateDeficit(supply.total, demand);
@@ -260,7 +232,7 @@ export default function Ruwvoerbalans() {
                 <div className="text-sm font-medium mb-1">Jaarlijkse Behoefte</div>
                 <div className="text-3xl font-bold">{(demand / 1000).toFixed(1)} ton</div>
                 <div className="text-sm mt-2 opacity-90">
-                  {totalCows} koeien + {farm.young_stock_junior_count + farm.young_stock_senior_count} jongvee
+                  {totalCows} koeien + {(farm.youngStockJuniorCount || 0) + (farm.youngStockSeniorCount || 0)} jongvee
                 </div>
               </div>
 

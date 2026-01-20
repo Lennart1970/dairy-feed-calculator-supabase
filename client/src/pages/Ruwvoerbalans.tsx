@@ -366,39 +366,7 @@ export default function Ruwvoerbalans() {
               </div>
             </div>
 
-            {/* Visual Gap Bar */}
-            <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
-              <h3 className="text-xl font-bold text-gray-800 mb-4">Voorraadbedekking</h3>
-              
-              <div className="relative">
-                <div className="w-full h-12 bg-gray-200 rounded-lg overflow-hidden">
-                  <div 
-                    className={`h-full ${deficit.percentageCovered >= 100 ? 'bg-green-500' : deficit.percentageCovered >= 80 ? 'bg-yellow-500' : 'bg-red-500'} transition-all duration-500`}
-                    style={{ width: `${Math.min(deficit.percentageCovered, 100)}%` }}
-                  ></div>
-                </div>
-                <div className="mt-2 text-center text-gray-600 font-medium">
-                  {deficit.percentageCovered}% van jaarbehoefte gedekt
-                </div>
-              </div>
 
-              <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="text-sm text-gray-600">Voorraad leeg op:</div>
-                    <div className="text-2xl font-bold text-blue-700">
-                      {formatDate(emptyDate)}
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-sm text-gray-600">Dagen resterend:</div>
-                    <div className="text-2xl font-bold text-blue-700">
-                      {Math.floor(supply.total / dailyDemand)} dagen
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
 
             {/* Purchase Recommendation */}
             {recommendation && (

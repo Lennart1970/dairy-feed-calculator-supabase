@@ -16,6 +16,7 @@ import LoadingList from "./pages/LoadingList";
 import Ruwvoerbalans from "./pages/Ruwvoerbalans";
 import Basisrantsoen from "./pages/Basisrantsoen";
 import RationAssignment from "./pages/RationAssignment";
+import LabRapporten from "./pages/LabRapporten";
 
 function Router() {
   const [location] = useLocation();
@@ -64,6 +65,7 @@ function Router() {
       <Route path={"/login"} component={Login} />
       <Route path={"/"} component={FarmDashboard} />
       <Route path={"/calculator"} component={Home} />
+      <Route path={"/lab-rapporten"} component={LabRapporten} />
       <Route path={"/bronnen"} component={Sources} />
       <Route path={"/sources"} component={Sources} />
       <Route path={"/beheer"} component={FeedManagement} />

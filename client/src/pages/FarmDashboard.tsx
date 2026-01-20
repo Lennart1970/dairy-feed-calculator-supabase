@@ -265,7 +265,7 @@ export default function FarmDashboard() {
             </a>
           </Link>
 
-          <Link href="/calculator">
+          <Link href="/lab-rapporten">
             <a className="bg-cyan-100 rounded-xl shadow-lg p-6 hover:bg-cyan-200 transition-all transform hover:scale-105 border-2 border-cyan-300">
               <div className="flex items-center gap-4">
                 <span className="text-5xl">🧪</span>

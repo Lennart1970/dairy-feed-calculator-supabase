@@ -75,39 +75,46 @@ function RoughageInputRow({
         </div>
       </div>
       
-      {/* DS% input */}
+      {/* kg DS input */}
       <div className="col-span-2">
-        <div className="text-xs text-muted-foreground text-center">Hoeveelheid (kg DS)</div>
+        <div className="text-xs text-muted-foreground text-center">kg DS</div>
         <Input
           type="number"
           step="0.1"
-          value={feed.dsPercent}
-          onChange={(e) => onDsPercentChange(feed.id, parseFloat(e.target.value) || 0)}
-          className="h-9 text-center font-mono"
+          min="0"
+          value={feed.amount || ''}
+          onChange={(e) => {
+            const kgDS = parseFloat(e.target.value) || 0;
+            onAmountChange(feed.id, kgDS);
+          }}
+          placeholder="0.0"
+          className="h-9 text-center font-mono bg-green-50 border-green-200 focus:border-green-400"
         />
       </div>
       
-      {/* kg Product input */}
+      {/* kg Product input - bidirectional conversion */}
       <div className="col-span-2">
         <div className="text-xs text-muted-foreground text-center">kg Product</div>
         <Input
           type="number"
           step="0.1"
-          value={isEditingKgProduct ? kgProductInput : kgProduct.toFixed(1)}
+          min="0"
+          value={isEditingKgProduct ? kgProductInput : (kgProduct > 0 ? kgProduct.toFixed(1) : '')}
           onFocus={() => {
             setIsEditingKgProduct(true);
-            setKgProductInput(kgProduct.toFixed(1));
+            setKgProductInput(kgProduct > 0 ? kgProduct.toFixed(1) : '');
           }}
           onChange={(e) => {
             setKgProductInput(e.target.value);
           }}
           onBlur={() => {
             const kgProd = parseFloat(kgProductInput) || 0;
-            // Calculate kg DS from kg Product: kg DS = (kg Product × DS%) / 100
+            // Formula: kg DS = kg Product × (DS% / 100)
             const kgDS = (kgProd * feed.dsPercent) / 100;
             onAmountChange(feed.id, kgDS);
             setIsEditingKgProduct(false);
           }}
+          placeholder="0.0"
           className="h-9 text-center font-mono"
         />
       </div>
@@ -337,6 +344,19 @@ export default function LabRapporten() {
                 </Button>
               </div>
             )}
+
+            {/* Formula explanation */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+              <div className="flex items-start gap-2">
+                <Scale className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                <div className="text-xs text-blue-800">
+                  <p className="font-semibold mb-1">Bidirectionele Conversie (DS ↔ Product)</p>
+                  <p><strong>kg DS</strong> = kg Product × (DS% / 100)</p>
+                  <p><strong>kg Product</strong> = kg DS × (100 / DS%)</p>
+                  <p className="text-blue-600 mt-1">Vul één van beide in - de ander wordt automatisch berekend</p>
+                </div>
+              </div>
+            </div>
 
             {/* Roughage input rows */}
             {roughageFeeds.map((feed) => (

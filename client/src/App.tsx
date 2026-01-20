@@ -53,7 +53,7 @@ function Router() {
     return <Login />;
   }
 
-  // If authenticated and on login page, redirect to home
+  // If authenticated and on login page, redirect to dashboard
   if (isAuthenticated && location === "/login") {
     window.location.href = "/";
     return null;
@@ -62,13 +62,12 @@ function Router() {
   return (
     <Switch>
       <Route path={"/login"} component={Login} />
-      <Route path={"/"} component={Home} />
+      <Route path={"/"} component={FarmDashboard} />
+      <Route path={"/calculator"} component={Home} />
       <Route path={"/bronnen"} component={Sources} />
       <Route path={"/sources"} component={Sources} />
       <Route path={"/beheer"} component={FeedManagement} />
       <Route path={"/feeds"} component={FeedManagement} />
-      {/* Farm Management Routes */}
-      <Route path={"/dashboard"} component={FarmDashboard} />
       <Route path={"/groepen"} component={HerdGroups} />
       <Route path={"/voorraad"} component={Inventory} />
       <Route path={"/laadlijst"} component={LoadingList} />

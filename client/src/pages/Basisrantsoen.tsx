@@ -189,7 +189,7 @@ export default function Basisrantsoen() {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-6">
-          <Link href="/dashboard">
+          <Link href="/">
             <a className="inline-flex items-center gap-2 text-orange-600 hover:text-orange-800 mb-4">
               <ArrowLeft className="w-4 h-4" />
               Terug naar Dashboard

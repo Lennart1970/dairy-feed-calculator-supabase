@@ -565,7 +565,7 @@ export default function Home() {
             </div>
             
             {/* Farm Dashboard Link */}
-            <Link href="/dashboard">
+            <Link href="/">
               <a className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-100 hover:bg-green-200 text-green-700 transition-colors">
                 <LayoutDashboard className="w-4 h-4" />
                 <span className="font-medium">Bedrijf Dashboard</span>

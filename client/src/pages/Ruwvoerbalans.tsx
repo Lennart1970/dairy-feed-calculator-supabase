@@ -114,7 +114,7 @@ export default function Ruwvoerbalans() {
               Strategische voorraadplanning voor {farm.name}
             </p>
           </div>
-          <Link href="/dashboard">
+          <Link href="/">
             <a className="text-green-600 hover:text-green-700 font-medium">
               ← Terug naar Dashboard
             </a>

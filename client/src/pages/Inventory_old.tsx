@@ -122,7 +122,7 @@ export default function Inventory() {
                 <p className="text-sm text-gray-500">Voorraden bijhouden en leveringen registreren</p>
               </div>
             </div>
-            <Link href="/dashboard">
+            <Link href="/">
               <a className="text-green-600 hover:text-green-800 flex items-center gap-1">
                 ← Terug naar Dashboard
               </a>

@@ -633,7 +633,7 @@ export default function Home() {
                 />
               </div>
 
-              {/* SECTION 2: Aanbod (Ruwvoer + Krachtvoer + Voedingsbalans) */}
+              {/* SECTION 2: Aanbod (Ruwvoer + Voedingsbalans) - Lab Reports & Roughage Only */}
               <div ref={aanbodRef} id="aanbod" className="scroll-mt-24">
                 {/* Section Header */}
                 <div className="flex items-center gap-3 mb-6">
@@ -650,7 +650,7 @@ export default function Home() {
 
                 {/* Two-column layout: Feeds on left, Voedingsbalans on right */}
                 <div className="grid lg:grid-cols-2 gap-6">
-                  {/* Left Column: Ruwvoer + Krachtvoer stacked */}
+                  {/* Left Column: Ruwvoer (Krachtvoer moved to Rantsoen Toewijzing) */}
                   <div className="space-y-6">
                     {/* Ruwvoer Card */}
                     <Card className="border-0 shadow-lg bg-gradient-to-br from-emerald-50 to-green-50/30 dark:from-emerald-950/40 dark:to-green-950/20 border-l-4 border-l-emerald-500">
@@ -755,15 +755,7 @@ export default function Home() {
                       </CardContent>
                     </Card>
 
-                    {/* Krachtvoer Card - directly below Ruwvoer */}
-                    {concentrateFeeds.length > 0 && (
-                      <ConcentrateFeedSection
-                        concentrateFeeds={concentrateFeeds}
-                        feedInputs={concentrateFeedInputs}
-                        onFeedAmountChange={handleConcentrateFeedAmountChange}
-                        onDsPercentChange={handleConcentrateFeedDsPercentChange}
-                      />
-                    )}
+                    {/* Krachtvoer section removed - now handled in Rantsoen Toewijzing (PMR methodology) */}
                     
                     {/* Save Ration Button - only show when group is selected */}
                     {selectedGroup && (
@@ -783,19 +775,7 @@ export default function Home() {
                                 loadOrder: idx + 1,
                               };
                             }),
-                            // Concentrate feeds
-                            ...Object.entries(concentrateFeedInputs)
-                              .filter(([_, input]) => input.amountKg > 0)
-                              .map(([name, input], idx) => {
-                                const dbFeed = feedsData?.find(df => df.name === name);
-                                const dsKg = (input.amountKg * input.dsPercent) / 100;
-                                return {
-                                  feedId: dbFeed?.id || 100 + idx,
-                                  amountKgDs: dsKg,
-                                  feedingMethod: 'mixer',
-                                  loadOrder: roughageFeeds.filter(f => f.amount > 0).length + idx + 1,
-                                };
-                              }),
+                            // Concentrate feeds removed - now handled in Rantsoen Toewijzing
                           ]}
                         />
                       </div>

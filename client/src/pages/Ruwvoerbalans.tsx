@@ -247,30 +247,7 @@ export default function Ruwvoerbalans() {
                 <span className="text-sm font-normal text-gray-600">CVB 2022 Metabolisch Gewicht</span>
               </h2>
 
-              {/* VEM Demand Breakdown */}
-              <div className="bg-white rounded-lg p-4 mb-4">
-                <h3 className="font-semibold text-gray-700 mb-3">Jaarlijkse Energiebehoefte (VEM):</h3>
-                <div className="space-y-2 font-mono text-sm">
-                  {vemDemand.breakdown.map((item, idx) => (
-                    <div key={idx} className="flex justify-between items-center p-2 bg-gray-50 rounded">
-                      <span className="text-gray-700">
-                        {item.name}: {item.count} × {item.dailyVem.toLocaleString('nl-NL')} VEM/dag × 365
-                      </span>
-                      <span className="font-bold text-indigo-600">
-                        = {(item.annualVem / 1000000).toFixed(1)} miljoen VEM
-                      </span>
-                    </div>
-                  ))}
-                  <div className="flex justify-between items-center p-3 bg-indigo-100 rounded-lg border-2 border-indigo-300 mt-3">
-                    <span className="font-bold text-gray-800">Totale Jaarlijkse Behoefte:</span>
-                    <span className="font-bold text-2xl text-indigo-700">
-                      {(vemDemand.totalVem / 1000000).toFixed(1)} miljoen VEM
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* VEM Supply */}
+              {/* VEM Supply - MOVED UP */}
               <div className="bg-white rounded-lg p-4 mb-4">
                 <h3 className="font-semibold text-gray-700 mb-3">Jaarlijkse Energievoorraad (VEM):</h3>
                 <div className="space-y-2 font-mono text-sm">
@@ -320,6 +297,31 @@ export default function Ruwvoerbalans() {
                   </div>
                 </div>
               </div>
+
+              {/* VEM Demand Breakdown */}
+              <div className="bg-white rounded-lg p-4 mb-4">
+                <h3 className="font-semibold text-gray-700 mb-3">Jaarlijkse Energiebehoefte (VEM):</h3>
+                <div className="space-y-2 font-mono text-sm">
+                  {vemDemand.breakdown.map((item, idx) => (
+                    <div key={idx} className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                      <span className="text-gray-700">
+                        {item.name}: {item.count} × {item.dailyVem.toLocaleString('nl-NL')} VEM/dag × 365
+                      </span>
+                      <span className="font-bold text-indigo-600">
+                        = {(item.annualVem / 1000000).toFixed(1)} miljoen VEM
+                      </span>
+                    </div>
+                  ))}
+                  <div className="flex justify-between items-center p-3 bg-indigo-100 rounded-lg border-2 border-indigo-300 mt-3">
+                    <span className="font-bold text-gray-800">Totale Jaarlijkse Behoefte:</span>
+                    <span className="font-bold text-2xl text-indigo-700">
+                      {(vemDemand.totalVem / 1000000).toFixed(1)} miljoen VEM
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+
 
               {/* Commercial Output */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

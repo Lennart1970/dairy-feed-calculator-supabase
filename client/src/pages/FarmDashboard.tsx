@@ -140,11 +140,6 @@ export default function FarmDashboard() {
                 <p className="text-sm text-gray-500">Farm Management Dashboard</p>
               </div>
             </div>
-            <Link href="/">
-              <a className="text-green-600 hover:text-green-800 flex items-center gap-1">
-                ← Terug naar Calculator
-              </a>
-            </Link>
           </div>
         </div>
       </header>

@@ -555,11 +555,16 @@ export default function Home() {
                 <Milk className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">
-                  Melkveevoer Calculator
-                </h1>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">
+                    Melkveevoer Calculator
+                  </h1>
+                  <span className="px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-700 rounded-full">
+                    Per Koe
+                  </span>
+                </div>
                 <p className="text-xs text-muted-foreground">
-                  Gebaseerd op CVB 2025 Voedernormen Herkauwers
+                  Gebaseerd op CVB 2025 Voedernormen Herkauwers • Voor individuele koe berekeningen
                 </p>
               </div>
             </div>
@@ -666,24 +671,21 @@ export default function Home() {
                         </p>
                       </CardHeader>
                       <CardContent className="space-y-4">
-                        {/* Lab Report Upload Section */}
-                        {showUploadForm ? (
-                          <LabReportUpload 
-                            onParsed={handleLabReportParsed}
-                            onClose={() => setShowUploadForm(false)}
-                          />
-                        ) : (
-                          <div className="flex gap-2 mb-4">
+                        {/* Link to Central Lab Rapporten Page */}
+                        <div className="flex gap-2 mb-4">
+                          <Link href="/lab-rapporten" className="flex-1">
                             <Button 
                               variant="outline" 
-                              onClick={() => setShowUploadForm(true)}
-                              className="flex-1 border-dashed border-2 border-green-300 text-green-700 hover:bg-green-50 hover:border-green-400"
+                              className="w-full border-dashed border-2 border-cyan-300 text-cyan-700 hover:bg-cyan-50 hover:border-cyan-400"
                             >
                               <Upload className="w-4 h-4 mr-2" />
-                              Lab Rapport Uploaden (PDF)
+                              Lab Rapporten Beheren →
                             </Button>
-                          </div>
-                        )}
+                          </Link>
+                        </div>
+                        <p className="text-xs text-muted-foreground text-center -mt-2 mb-2">
+                          Ruwvoer data wordt geladen vanuit de centrale Lab Rapporten pagina
+                        </p>
 
                         {/* Roughage input rows */}
                         {roughageFeeds.map((feed) => (

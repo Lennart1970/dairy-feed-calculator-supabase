@@ -277,18 +277,6 @@ export default function FarmDashboard() {
             </a>
           </Link>
 
-          <Link href="/calculator">
-            <a className="bg-teal-100 rounded-xl shadow-lg p-6 hover:bg-teal-200 transition-all transform hover:scale-105 border-2 border-teal-300">
-              <div className="flex items-center gap-4">
-                <span className="text-5xl">🧮</span>
-                <div>
-                  <h3 className="text-xl font-bold text-gray-800">Rantsoen Calculator</h3>
-                  <p className="text-gray-600 text-sm font-medium">Bereken rantsoen voor individuele koe</p>
-                </div>
-              </div>
-            </a>
-          </Link>
-
           <Link href="/rantsoen-toewijzing">
             <a className="bg-indigo-100 rounded-xl shadow-lg p-6 hover:bg-indigo-200 transition-all transform hover:scale-105 border-2 border-indigo-300">
               <div className="flex items-center gap-4">
@@ -296,6 +284,18 @@ export default function FarmDashboard() {
                 <div>
                   <h3 className="text-xl font-bold text-gray-800">Rantsoen Toewijzing</h3>
                   <p className="text-gray-600 text-sm font-medium">Gap analyse & krachtvoer</p>
+                </div>
+              </div>
+            </a>
+          </Link>
+
+          <Link href="/calculator">
+            <a className="bg-teal-100 rounded-xl shadow-lg p-6 hover:bg-teal-200 transition-all transform hover:scale-105 border-2 border-teal-300">
+              <div className="flex items-center gap-4">
+                <span className="text-5xl">🧮</span>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-800">Rantsoen Calculator</h3>
+                  <p className="text-gray-600 text-sm font-medium">Bereken rantsoen voor individuele koe</p>
                 </div>
               </div>
             </a>

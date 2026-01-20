@@ -365,7 +365,7 @@ export default function LabRapporten() {
                 feed={feed}
                 onAmountChange={handleRoughageAmountChange}
                 onDsPercentChange={handleRoughageDsPercentChange}
-                onRemove={feed.id.startsWith('uploaded_') ? handleRemoveRoughageFeed : undefined}
+                onRemove={handleRemoveRoughageFeed}
               />
             ))}
 

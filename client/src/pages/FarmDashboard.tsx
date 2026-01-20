@@ -277,6 +277,18 @@ export default function FarmDashboard() {
             </a>
           </Link>
 
+          <Link href="/basisrantsoen">
+            <a className="bg-orange-100 rounded-xl shadow-lg p-6 hover:bg-orange-200 transition-all transform hover:scale-105 border-2 border-orange-300">
+              <div className="flex items-center gap-4">
+                <span className="text-5xl">🌾</span>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-800">Basisrantsoen</h3>
+                  <p className="text-gray-600 text-sm font-medium">Ontwerp & beheer basisrantsoenen</p>
+                </div>
+              </div>
+            </a>
+          </Link>
+
           <Link href="/rantsoen-toewijzing">
             <a className="bg-indigo-100 rounded-xl shadow-lg p-6 hover:bg-indigo-200 transition-all transform hover:scale-105 border-2 border-indigo-300">
               <div className="flex items-center gap-4">

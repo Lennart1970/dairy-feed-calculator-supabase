@@ -289,18 +289,6 @@ export default function FarmDashboard() {
             </a>
           </Link>
 
-          <Link href="/voorraad">
-            <a className="bg-blue-100 rounded-xl shadow-lg p-6 hover:bg-blue-200 transition-all transform hover:scale-105 border-2 border-blue-300">
-              <div className="flex items-center gap-4">
-                <span className="text-5xl">📦</span>
-                <div>
-                  <h3 className="text-xl font-bold text-gray-800">Voorraad Beheren</h3>
-                  <p className="text-gray-600 text-sm font-medium">Voorraden bijwerken</p>
-                </div>
-              </div>
-            </a>
-          </Link>
-
           <Link href="/rantsoen-toewijzing">
             <a className="bg-indigo-100 rounded-xl shadow-lg p-6 hover:bg-indigo-200 transition-all transform hover:scale-105 border-2 border-indigo-300">
               <div className="flex items-center gap-4">
@@ -308,6 +296,18 @@ export default function FarmDashboard() {
                 <div>
                   <h3 className="text-xl font-bold text-gray-800">Rantsoen Toewijzing</h3>
                   <p className="text-gray-600 text-sm font-medium">Gap analyse & krachtvoer</p>
+                </div>
+              </div>
+            </a>
+          </Link>
+
+          <Link href="/voorraad">
+            <a className="bg-blue-100 rounded-xl shadow-lg p-6 hover:bg-blue-200 transition-all transform hover:scale-105 border-2 border-blue-300">
+              <div className="flex items-center gap-4">
+                <span className="text-5xl">📦</span>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-800">Voorraad Beheren</h3>
+                  <p className="text-gray-600 text-sm font-medium">Voorraden bijwerken</p>
                 </div>
               </div>
             </a>

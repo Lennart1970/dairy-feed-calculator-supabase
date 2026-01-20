@@ -53,13 +53,12 @@ function RoughageInputRow({
   
   // Assess feed quality
   const quality = useMemo(() => {
-    return assessFeedQuality({
-      name: feed.displayName,
-      vem: feed.vem,
-      dve: feed.dve,
-      oeb: feed.oeb,
-      dsPercent: feed.dsPercent,
-    });
+    return assessFeedQuality(
+      feed.displayName,
+      feed.vem,
+      feed.dve,
+      feed.oeb
+    );
   }, [feed]);
 
   return (

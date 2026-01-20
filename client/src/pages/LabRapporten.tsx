@@ -3,10 +3,7 @@ import { trpc } from "@/lib/trpc";
 import { LabReportUpload, type ParsedFeedData } from "@/components/LabReportUpload";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Upload, Wheat, Scale, Zap, Beef, X, ArrowLeft } from "lucide-react";
+import { Upload, X, ArrowLeft } from "lucide-react";
 import { Link } from "wouter";
 import { assessFeedQuality } from "@/lib/feedQuality";
 
@@ -32,25 +29,14 @@ const FALLBACK_ROUGHAGE_FEEDS: RoughageEntry[] = [
   { id: "hooi", name: "hooi", displayName: "Hooi", vem: 798, dve: 55, oeb: 28, dsPercent: 85, amount: 0 },
 ];
 
-// Roughage input row component
-function RoughageInputRow({ 
+// Feed quality display row component (simplified - no amount inputs)
+function FeedQualityRow({ 
   feed, 
-  onAmountChange, 
-  onDsPercentChange,
   onRemove 
 }: { 
   feed: RoughageEntry; 
-  onAmountChange: (id: string, value: number) => void;
-  onDsPercentChange: (id: string, value: number) => void;
   onRemove?: (id: string) => void;
 }) {
-  const [isEditingKgProduct, setIsEditingKgProduct] = useState(false);
-  const [kgProductInput, setKgProductInput] = useState("");
-  const [showQuality, setShowQuality] = useState(false);
-  
-  // Calculate kg Product from kg DS: kg Product = (kg DS × 100) / DS%
-  const kgProduct = feed.dsPercent > 0 ? (feed.amount * 100) / feed.dsPercent : 0;
-  
   // Assess feed quality
   const quality = useMemo(() => {
     return assessFeedQuality(
@@ -61,75 +47,61 @@ function RoughageInputRow({
     );
   }, [feed]);
 
+  // Determine quality indicator color
+  const qualityColor = quality?.overallScore === 'good' ? 'text-green-600' 
+    : quality?.overallScore === 'warning' ? 'text-yellow-600' 
+    : quality?.overallScore === 'poor' ? 'text-red-600' 
+    : 'text-gray-600';
+
   return (
-    <div className="space-y-2">
-      <div className="grid grid-cols-12 gap-2 items-center">
-      {/* Feed name */}
-      <div className="col-span-3">
-        <div className="text-sm font-medium">{feed.displayName}</div>
-        <div className="text-xs text-muted-foreground">
-          {feed.dsPercent}% DS | {feed.vem} VEM
-        </div>
-        <div className="text-xs text-muted-foreground">
-          {feed.dve}g DVE | {feed.oeb >= 0 ? '+' : ''}{feed.oeb}g OEB
+    <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200 hover:border-gray-300 transition-colors">
+      {/* Feed name and source indicator */}
+      <div className="flex-1">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-gray-900">{feed.displayName}</span>
+          {feed.id.startsWith('uploaded_') && (
+            <span className="px-1.5 py-0.5 text-xs font-medium bg-cyan-100 text-cyan-700 rounded">🧪 Lab</span>
+          )}
         </div>
       </div>
       
-      {/* kg DS input */}
-      <div className="col-span-2">
-        <div className="text-xs text-muted-foreground text-center">kg DS</div>
-        <Input
-          type="number"
-          step="0.1"
-          min="0"
-          value={feed.amount || ''}
-          onChange={(e) => {
-            const kgDS = parseFloat(e.target.value) || 0;
-            onAmountChange(feed.id, kgDS);
-          }}
-          placeholder="0.0"
-          className="h-9 text-center font-mono bg-green-50 border-green-200 focus:border-green-400"
-        />
+      {/* DS% */}
+      <div className="w-16 text-center">
+        <div className="text-xs text-muted-foreground">DS%</div>
+        <div className="text-sm font-mono font-medium">{feed.dsPercent}%</div>
       </div>
       
-      {/* kg Product input - bidirectional conversion */}
-      <div className="col-span-2">
-        <div className="text-xs text-muted-foreground text-center">kg Product</div>
-        <Input
-          type="number"
-          step="0.1"
-          min="0"
-          value={isEditingKgProduct ? kgProductInput : (kgProduct > 0 ? kgProduct.toFixed(1) : '')}
-          onFocus={() => {
-            setIsEditingKgProduct(true);
-            setKgProductInput(kgProduct > 0 ? kgProduct.toFixed(1) : '');
-          }}
-          onChange={(e) => {
-            setKgProductInput(e.target.value);
-          }}
-          onBlur={() => {
-            const kgProd = parseFloat(kgProductInput) || 0;
-            // Formula: kg DS = kg Product × (DS% / 100)
-            const kgDS = (kgProd * feed.dsPercent) / 100;
-            onAmountChange(feed.id, kgDS);
-            setIsEditingKgProduct(false);
-          }}
-          placeholder="0.0"
-          className="h-9 text-center font-mono"
-        />
+      {/* VEM */}
+      <div className="w-20 text-center">
+        <div className="text-xs text-muted-foreground">VEM</div>
+        <div className="text-sm font-mono font-medium text-amber-600">{feed.vem}</div>
       </div>
       
-      {/* Contribution */}
-      <div className="col-span-3">
-        <div className="text-xs text-muted-foreground text-right">Bijdrage</div>
-        <div className="text-sm font-mono text-right">
-          <span className="text-amber-600">{Math.round(feed.amount * feed.vem).toLocaleString()} VEM</span>
+      {/* DVE */}
+      <div className="w-16 text-center">
+        <div className="text-xs text-muted-foreground">DVE</div>
+        <div className="text-sm font-mono font-medium text-blue-600">{feed.dve}g</div>
+      </div>
+      
+      {/* OEB */}
+      <div className="w-16 text-center">
+        <div className="text-xs text-muted-foreground">OEB</div>
+        <div className={`text-sm font-mono font-medium ${feed.oeb >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+          {feed.oeb >= 0 ? '+' : ''}{feed.oeb}g
         </div>
       </div>
+      
+      {/* SW (if available) */}
+      {feed.swPerKgDs !== undefined && (
+        <div className="w-14 text-center">
+          <div className="text-xs text-muted-foreground">SW</div>
+          <div className="text-sm font-mono font-medium text-purple-600">{feed.swPerKgDs}</div>
+        </div>
+      )}
       
       {/* Remove button */}
       {onRemove && (
-        <div className="col-span-2 flex justify-end">
+        <div className="ml-2">
           <Button
             variant="ghost"
             size="sm"
@@ -138,34 +110,6 @@ function RoughageInputRow({
           >
             <X className="w-4 h-4" />
           </Button>
-        </div>
-      )}
-      </div>
-      
-      {/* Quality Details Panel */}
-      {quality && showQuality && (
-        <div className={`mt-2 p-3 rounded-lg border ${quality.bgColor} ${quality.borderColor}`}>
-          {quality.warnings.length > 0 && (
-            <div className="mb-2">
-              <p className="text-xs font-semibold text-red-700 mb-1">⚠️ Waarschuwingen:</p>
-              <ul className="text-xs text-red-600 list-disc list-inside space-y-1">
-                {quality.warnings.map((w, i) => <li key={i}>{w}</li>)}
-              </ul>
-            </div>
-          )}
-          {quality.recommendations.length > 0 && (
-            <div className="mb-2">
-              <p className="text-xs font-semibold text-blue-700 mb-1">💡 Aanbevelingen:</p>
-              <ul className="text-xs text-blue-600 list-disc list-inside space-y-1">
-                {quality.recommendations.map((r, i) => <li key={i}>{r}</li>)}
-              </ul>
-            </div>
-          )}
-          {quality.impactEstimate && (
-            <div className="text-xs text-gray-700">
-              <span className="font-semibold">Geschatte impact:</span> {quality.impactEstimate}
-            </div>
-          )}
         </div>
       )}
     </div>
@@ -214,7 +158,6 @@ export default function LabRapporten() {
     }
   }, [databaseRoughageFeeds, hasInitializedFromDb]);
   
-  const [isGrazing, setIsGrazing] = useState(false);
   const [showUploadForm, setShowUploadForm] = useState(false);
   const [nextFeedId, setNextFeedId] = useState(100); // Start after database feeds
 
@@ -269,26 +212,6 @@ export default function LabRapporten() {
   const handleRemoveRoughageFeed = useCallback((id: string) => {
     setRoughageFeeds(prev => prev.filter(f => f.id !== id));
   }, []);
-
-  // Handle roughage amount change
-  const handleRoughageAmountChange = useCallback((id: string, value: number) => {
-    setRoughageFeeds(prev => prev.map(f => f.id === id ? { ...f, amount: value } : f));
-  }, []);
-
-  // Handle roughage DS% change
-  const handleRoughageDsPercentChange = useCallback((id: string, value: number) => {
-    setRoughageFeeds(prev => prev.map(f => f.id === id ? { ...f, dsPercent: value } : f));
-  }, []);
-
-  // Calculate roughage totals
-  const roughageTotals = useMemo(() => {
-    return roughageFeeds.reduce((acc, feed) => ({
-      dryMatter: acc.dryMatter + feed.amount,
-      vem: acc.vem + (feed.amount * feed.vem),
-      dve: acc.dve + (feed.amount * feed.dve),
-      oeb: acc.oeb + (feed.amount * feed.oeb),
-    }), { dryMatter: 0, vem: 0, dve: 0, oeb: 0 });
-  }, [roughageFeeds]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-950 dark:to-blue-950">
@@ -345,85 +268,34 @@ export default function LabRapporten() {
               </div>
             )}
 
-            {/* Formula explanation */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-              <div className="flex items-start gap-2">
-                <Scale className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
-                <div className="text-xs text-blue-800">
-                  <p className="font-semibold mb-1">Bidirectionele Conversie (DS ↔ Product)</p>
-                  <p><strong>kg DS</strong> = kg Product × (DS% / 100)</p>
-                  <p><strong>kg Product</strong> = kg DS × (100 / DS%)</p>
-                  <p className="text-blue-600 mt-1">Vul één van beide in - de ander wordt automatisch berekend</p>
-                </div>
-              </div>
+            {/* Column headers */}
+            <div className="flex items-center justify-between px-3 py-2 bg-gray-50 rounded-t-lg border border-gray-200 border-b-0">
+              <div className="flex-1 text-xs font-medium text-gray-500">Voeder</div>
+              <div className="w-16 text-center text-xs font-medium text-gray-500">DS%</div>
+              <div className="w-20 text-center text-xs font-medium text-gray-500">VEM</div>
+              <div className="w-16 text-center text-xs font-medium text-gray-500">DVE</div>
+              <div className="w-16 text-center text-xs font-medium text-gray-500">OEB</div>
+              <div className="w-14 text-center text-xs font-medium text-gray-500">SW</div>
+              <div className="w-8"></div>
             </div>
 
-            {/* Roughage input rows */}
-            {roughageFeeds.map((feed) => (
-              <RoughageInputRow
-                key={feed.id}
-                feed={feed}
-                onAmountChange={handleRoughageAmountChange}
-                onDsPercentChange={handleRoughageDsPercentChange}
-                onRemove={handleRemoveRoughageFeed}
-              />
-            ))}
-
-            {/* Grazing toggle */}
-            <div className="flex items-center justify-between pt-4 border-t border-slate-200 dark:border-slate-800">
-              <div className="flex items-center gap-2">
-                <Wheat className="w-4 h-4 text-green-600" />
-                <Label htmlFor="grazing" className="text-sm font-medium">
-                  Beweiding (+1.175 VEM bonus)
-                </Label>
-              </div>
-              <Switch
-                id="grazing"
-                checked={isGrazing}
-                onCheckedChange={setIsGrazing}
-              />
+            {/* Feed quality rows */}
+            <div className="space-y-1">
+              {roughageFeeds.map((feed) => (
+                <FeedQualityRow
+                  key={feed.id}
+                  feed={feed}
+                  onRemove={handleRemoveRoughageFeed}
+                />
+              ))}
             </div>
 
-            {/* Totals summary */}
-            <div className="bg-emerald-50 dark:bg-emerald-950/30 rounded-lg p-4 mt-4">
-              <div className="text-sm font-medium text-emerald-800 dark:text-emerald-300 mb-2">
-                Totaal Ruwvoer
-              </div>
-              <div className="grid grid-cols-4 gap-4 text-center">
-                <div>
-                  <div className="text-2xl font-bold text-slate-900 dark:text-white">
-                    {roughageTotals.dryMatter.toFixed(1)}
-                  </div>
-                  <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
-                    <Scale className="w-3 h-3" />
-                    <span>kg DS</span>
-                  </div>
-                </div>
-                <div>
-                  <div className="text-2xl font-bold text-amber-600">
-                    {(Math.round(roughageTotals.vem) + (isGrazing ? 1175 : 0)).toLocaleString()}
-                  </div>
-                  <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
-                    <Zap className="w-3 h-3 text-amber-600" />
-                    <span>VEM</span>
-                  </div>
-                </div>
-                <div>
-                  <div className="text-2xl font-bold text-blue-600">
-                    {Math.round(roughageTotals.dve)}
-                  </div>
-                  <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
-                    <Beef className="w-3 h-3 text-blue-600" />
-                    <span>g DVE</span>
-                  </div>
-                </div>
-                <div>
-                  <div className={`text-2xl font-bold ${roughageTotals.oeb >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                    {roughageTotals.oeb >= 0 ? '+' : ''}{Math.round(roughageTotals.oeb)}
-                  </div>
-                  <div className="text-xs text-muted-foreground">g OEB</div>
-                </div>
-              </div>
+            {/* Info note */}
+            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-xs text-blue-800">
+                <strong>Tip:</strong> Deze voederwaarden worden gebruikt in de <strong>Rantsoen Toewijzing</strong> (PMR per groep) 
+                en de <strong>Rantsoen Calculator</strong> (per koe). Upload lab rapporten om de echte waarden van uw ruwvoer te gebruiken.
+              </p>
             </div>
           </CardContent>
         </Card>

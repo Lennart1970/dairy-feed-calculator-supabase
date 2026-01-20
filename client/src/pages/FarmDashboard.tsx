@@ -266,24 +266,24 @@ export default function FarmDashboard() {
           </Link>
 
           <Link href="/calculator">
-            <a className="bg-teal-100 rounded-xl shadow-lg p-6 hover:bg-teal-200 transition-all transform hover:scale-105 border-2 border-teal-300">
-              <div className="flex items-center gap-4">
-                <span className="text-5xl">🧮</span>
-                <div>
-                  <h3 className="text-xl font-bold text-gray-800">Rantsoen Calculator</h3>
-                  <p className="text-gray-600 text-sm font-medium">Bereken rantsoen voor individuele koe</p>
-                </div>
-              </div>
-            </a>
-          </Link>
-
-          <Link href="/calculator">
             <a className="bg-cyan-100 rounded-xl shadow-lg p-6 hover:bg-cyan-200 transition-all transform hover:scale-105 border-2 border-cyan-300">
               <div className="flex items-center gap-4">
                 <span className="text-5xl">🧪</span>
                 <div>
                   <h3 className="text-xl font-bold text-gray-800">Lab Rapporten</h3>
                   <p className="text-gray-600 text-sm font-medium">Upload kuilanalyse resultaten</p>
+                </div>
+              </div>
+            </a>
+          </Link>
+
+          <Link href="/calculator">
+            <a className="bg-teal-100 rounded-xl shadow-lg p-6 hover:bg-teal-200 transition-all transform hover:scale-105 border-2 border-teal-300">
+              <div className="flex items-center gap-4">
+                <span className="text-5xl">🧮</span>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-800">Rantsoen Calculator</h3>
+                  <p className="text-gray-600 text-sm font-medium">Bereken rantsoen voor individuele koe</p>
                 </div>
               </div>
             </a>

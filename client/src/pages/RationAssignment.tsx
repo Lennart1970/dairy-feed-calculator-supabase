@@ -239,6 +239,29 @@ export default function RationAssignment() {
           </div>
         </div>
 
+        {/* Stringent Disclaimer */}
+        <div className="bg-red-50 border-2 border-red-400 rounded-lg p-4 mb-6">
+          <div className="flex items-start gap-3">
+            <div className="text-2xl">⚠️</div>
+            <div className="flex-1">
+              <div className="font-bold text-red-800 text-lg mb-2">BELANGRIJK - Lees dit zorgvuldig</div>
+              <ul className="text-sm text-red-900 space-y-2">
+                <li className="flex items-start gap-2">
+                  <span className="font-bold mt-0.5">a)</span>
+                  <span>Deze functionaliteit is nog <strong>in ontwikkeling</strong> en moet verder worden uitgewerkt voordat deze voor praktische beslissingen kan worden gebruikt.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="font-bold mt-0.5">b)</span>
+                  <span>Deze rantsoentoewijzing <strong>moet altijd worden besproken</strong> met uw voerleverancier en voerspecialist voordat u deze implementeert.</span>
+                </li>
+              </ul>
+              <div className="mt-3 text-xs text-red-800 font-semibold">
+                Gebruik deze berekeningen uitsluitend als indicatie, niet als definitieve voerstrategie.
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* PMR Methodology Info */}
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
           <div className="flex items-start gap-3">

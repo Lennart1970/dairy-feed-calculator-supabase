@@ -74,6 +74,13 @@ export default function FarmDashboard() {
     };
   }, { vem: 0, dve: 0 }) || { vem: 0, dve: 0 };
 
+  // Sort groups: production groups first (by milk yield descending), dry cows last
+  const sortedGroups = [...(groups || [])].sort((a, b) => {
+    if (a.lifeStage === 'dry' && b.lifeStage !== 'dry') return 1;
+    if (a.lifeStage !== 'dry' && b.lifeStage === 'dry') return -1;
+    return b.avgMilkYieldKg - a.avgMilkYieldKg;
+  });
+
   // Calculate inventory alerts
   const lowStockItems = inventory?.filter(item => {
     if (!item.dailyUsageRateKg || item.dailyUsageRateKg === 0) return false;
@@ -239,6 +246,70 @@ export default function FarmDashboard() {
           </div>
         </div>
 
+        {/* Herd Groups Overview */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 mb-8">
+          <div className="p-6 border-b border-gray-100">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                👥 Koegroepen Overzicht
+              </h2>
+              <Link href="/groepen">
+                <a className="text-green-600 hover:text-green-800 text-sm">
+                  Beheren →
+                </a>
+              </Link>
+            </div>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Groep</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Koeien</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Melk (kg)</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">FPCM</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">VEM/koe</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">DVE/koe</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">DIM</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {sortedGroups.map((group) => {
+                  const req = calculateGroupRequirements(group);
+                  return (
+                    <tr key={group.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xl">
+                            {group.lifeStage === 'dry' ? '🤰' : '🐄'}
+                          </span>
+                          <span className="font-medium text-gray-900">{group.name}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-right text-gray-900">{group.cowCount}</td>
+                      <td className="px-6 py-4 text-right text-gray-900">
+                        {group.lifeStage === 'dry' ? '-' : group.avgMilkYieldKg.toFixed(1)}
+                      </td>
+                      <td className="px-6 py-4 text-right text-gray-900">
+                        {req.fpcm > 0 ? req.fpcm.toFixed(1) : '-'}
+                      </td>
+                      <td className="px-6 py-4 text-right text-orange-600 font-medium">
+                        {req.vem.toLocaleString('nl-NL')}
+                      </td>
+                      <td className="px-6 py-4 text-right text-purple-600 font-medium">
+                        {req.dve}g
+                      </td>
+                      <td className="px-6 py-4 text-right text-gray-500">
+                        {group.lifeStage === 'dry' ? '-' : group.avgDaysInMilk}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           <Link href="/ruwvoerbalans">
@@ -324,70 +395,6 @@ export default function FarmDashboard() {
               </div>
             </a>
           </Link>
-        </div>
-
-        {/* Herd Groups Overview */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 mb-8">
-          <div className="p-6 border-b border-gray-100">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                👥 Koegroepen Overzicht
-              </h2>
-              <Link href="/groepen">
-                <a className="text-green-600 hover:text-green-800 text-sm">
-                  Beheren →
-                </a>
-              </Link>
-            </div>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Groep</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Koeien</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Melk (kg)</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">FPCM</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">VEM/koe</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">DVE/koe</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">DIM</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {groups?.map((group) => {
-                  const req = calculateGroupRequirements(group);
-                  return (
-                    <tr key={group.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xl">
-                            {group.lifeStage === 'dry' ? '🤰' : '🐄'}
-                          </span>
-                          <span className="font-medium text-gray-900">{group.name}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-right text-gray-900">{group.cowCount}</td>
-                      <td className="px-6 py-4 text-right text-gray-900">
-                        {group.lifeStage === 'dry' ? '-' : group.avgMilkYieldKg.toFixed(1)}
-                      </td>
-                      <td className="px-6 py-4 text-right text-gray-900">
-                        {req.fpcm > 0 ? req.fpcm.toFixed(1) : '-'}
-                      </td>
-                      <td className="px-6 py-4 text-right text-orange-600 font-medium">
-                        {req.vem.toLocaleString('nl-NL')}
-                      </td>
-                      <td className="px-6 py-4 text-right text-purple-600 font-medium">
-                        {req.dve}g
-                      </td>
-                      <td className="px-6 py-4 text-right text-gray-500">
-                        {group.lifeStage === 'dry' ? '-' : group.avgDaysInMilk}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
         </div>
 
         {/* Inventory Alerts */}

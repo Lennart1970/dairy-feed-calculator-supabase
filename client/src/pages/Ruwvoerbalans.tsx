@@ -128,13 +128,16 @@ export default function Ruwvoerbalans() {
             <div className="flex bg-gray-100 rounded-lg p-1">
               <button
                 onClick={() => setMode('current')}
-                className={`px-6 py-2 rounded-md font-medium transition-colors ${
+                className={`px-6 py-2 rounded-md font-medium transition-colors relative ${
                   mode === 'current'
                     ? 'bg-white text-green-700 shadow-sm'
                     : 'text-gray-600 hover:text-gray-800'
                 }`}
               >
                 Mode A: Huidige Voorraad
+                <span className="absolute -top-2 -right-2 bg-orange-500 text-white text-xs px-2 py-0.5 rounded-full shadow-md font-semibold">
+                  In Ontwikkeling
+                </span>
               </button>
               <button
                 onClick={() => setMode('forecast')}

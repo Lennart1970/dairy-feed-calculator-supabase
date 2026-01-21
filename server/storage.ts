@@ -1,9 +1,11 @@
-// Preconfigured storage helpers for Manus WebDev templates
-// Uses the Biz-provided storage proxy (Authorization: Bearer <token>)
+// Storage helpers using Supabase Storage API directly
+// Uses Supabase's native storage API with anon key authentication
 
 import { ENV } from './_core/env';
 
 type StorageConfig = { baseUrl: string; apiKey: string };
+
+const BUCKET_NAME = 'lab-reports';
 
 function getStorageConfig(): StorageConfig {
   const baseUrl = ENV.forgeApiUrl;
@@ -18,55 +20,13 @@ function getStorageConfig(): StorageConfig {
   return { baseUrl: baseUrl.replace(/\/+$/, ""), apiKey };
 }
 
-function buildUploadUrl(baseUrl: string, relKey: string): URL {
-  const url = new URL("v1/storage/upload", ensureTrailingSlash(baseUrl));
-  url.searchParams.set("path", normalizeKey(relKey));
-  return url;
-}
-
-async function buildDownloadUrl(
-  baseUrl: string,
-  relKey: string,
-  apiKey: string
-): Promise<string> {
-  const downloadApiUrl = new URL(
-    "v1/storage/downloadUrl",
-    ensureTrailingSlash(baseUrl)
-  );
-  downloadApiUrl.searchParams.set("path", normalizeKey(relKey));
-  const response = await fetch(downloadApiUrl, {
-    method: "GET",
-    headers: buildAuthHeaders(apiKey),
-  });
-  return (await response.json()).url;
-}
-
-function ensureTrailingSlash(value: string): string {
-  return value.endsWith("/") ? value : `${value}/`;
-}
-
 function normalizeKey(relKey: string): string {
   return relKey.replace(/^\/+/, "");
 }
 
-function toFormData(
-  data: Buffer | Uint8Array | string,
-  contentType: string,
-  fileName: string
-): FormData {
-  const blob =
-    typeof data === "string"
-      ? new Blob([data], { type: contentType })
-      : new Blob([data as any], { type: contentType });
-  const form = new FormData();
-  form.append("file", blob, fileName || "file");
-  return form;
-}
-
-function buildAuthHeaders(apiKey: string): HeadersInit {
-  return { Authorization: `Bearer ${apiKey}` };
-}
-
+/**
+ * Upload a file to Supabase Storage
+ */
 export async function storagePut(
   relKey: string,
   data: Buffer | Uint8Array | string,
@@ -74,12 +34,28 @@ export async function storagePut(
 ): Promise<{ key: string; url: string }> {
   const { baseUrl, apiKey } = getStorageConfig();
   const key = normalizeKey(relKey);
-  const uploadUrl = buildUploadUrl(baseUrl, key);
-  const formData = toFormData(data, contentType, key.split("/").pop() ?? key);
+  
+  // Supabase Storage upload URL format:
+  // POST {baseUrl}/storage/v1/object/{bucket}/{path}
+  const uploadUrl = `${baseUrl}/storage/v1/object/${BUCKET_NAME}/${key}`;
+  
+  // Convert data to appropriate format
+  let body: BodyInit;
+  if (typeof data === "string") {
+    body = data;
+  } else {
+    body = data;
+  }
+
   const response = await fetch(uploadUrl, {
     method: "POST",
-    headers: buildAuthHeaders(apiKey),
-    body: formData,
+    headers: {
+      "Authorization": `Bearer ${apiKey}`,
+      "apikey": apiKey,
+      "Content-Type": contentType,
+      "x-upsert": "true"  // Allow overwriting existing files
+    },
+    body: body,
   });
 
   if (!response.ok) {
@@ -88,15 +64,23 @@ export async function storagePut(
       `Storage upload failed (${response.status} ${response.statusText}): ${message}`
     );
   }
-  const url = (await response.json()).url;
-  return { key, url };
+
+  // Construct the public URL for the uploaded file
+  // Supabase public URL format: {baseUrl}/storage/v1/object/public/{bucket}/{path}
+  const publicUrl = `${baseUrl}/storage/v1/object/public/${BUCKET_NAME}/${key}`;
+  
+  return { key, url: publicUrl };
 }
 
-export async function storageGet(relKey: string): Promise<{ key: string; url: string; }> {
-  const { baseUrl, apiKey } = getStorageConfig();
+/**
+ * Get a download URL for a file in Supabase Storage
+ */
+export async function storageGet(relKey: string): Promise<{ key: string; url: string }> {
+  const { baseUrl } = getStorageConfig();
   const key = normalizeKey(relKey);
-  return {
-    key,
-    url: await buildDownloadUrl(baseUrl, key, apiKey),
-  };
+  
+  // Supabase public URL format
+  const publicUrl = `${baseUrl}/storage/v1/object/public/${BUCKET_NAME}/${key}`;
+  
+  return { key, url: publicUrl };
 }

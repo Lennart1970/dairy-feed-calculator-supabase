@@ -27,6 +27,7 @@ export default function Ruwvoerbalans() {
   const [yieldMaize, setYieldMaize] = useState(12.0);
   const [yieldGrass, setYieldGrass] = useState(11.0);
   const [qualityLevel, setQualityLevel] = useState<QualityLevel>('topkwaliteit');
+  const [soilType, setSoilType] = useState<string>('zand_veen');
 
   // Initialize form with farm data when it loads
   useEffect(() => {
@@ -168,6 +169,26 @@ export default function Ruwvoerbalans() {
               <h2 className="text-2xl font-bold text-gray-800 mb-4">
                 🌾 Bouwplan (Crop Plan)
               </h2>
+              
+              {/* Soil Type Selection */}
+              <div className="mb-6 p-4 bg-amber-50 rounded-lg border border-amber-200">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  🏔️ Bodemtype (Soil Type)
+                </label>
+                <select
+                  value={soilType}
+                  onChange={(e) => setSoilType(e.target.value)}
+                  className="w-full md:w-1/2 px-4 py-2 border border-amber-300 rounded-lg focus:ring-2 focus:ring-amber-500 bg-white"
+                >
+                  <option value="zand_veen">Zand (Podzol) / Veen (Moerig) - Dedemsvaart</option>
+                  <option value="klei">Klei (Zeeklei/Rivierklei) - In ontwikkeling</option>
+                  <option value="loss">Löss - In ontwikkeling</option>
+                  <option value="other">Overige bodemtypen - In ontwikkeling</option>
+                </select>
+                <p className="text-xs text-amber-700 mt-2">
+                  💡 Bodemtype beïnvloedt opbrengstpotentieel en waterhuishouding. Dedemsvaart: variabele grondwaterstand (risico natte voeten).
+                </p>
+              </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Maize */}

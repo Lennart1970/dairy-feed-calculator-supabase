@@ -8,12 +8,13 @@ type StorageConfig = { baseUrl: string; apiKey: string };
 const BUCKET_NAME = 'lab-reports';
 
 function getStorageConfig(): StorageConfig {
-  const baseUrl = ENV.forgeApiUrl;
-  const apiKey = ENV.forgeApiKey;
+  // Use dedicated Supabase variables, NOT the Forge/LLM variables
+  const baseUrl = ENV.supabaseUrl;
+  const apiKey = ENV.supabaseAnonKey;
 
   if (!baseUrl || !apiKey) {
     throw new Error(
-      "Storage proxy credentials missing: set BUILT_IN_FORGE_API_URL and BUILT_IN_FORGE_API_KEY"
+      "Supabase storage credentials missing: set SUPABASE_URL and SUPABASE_ANON_KEY"
     );
   }
 

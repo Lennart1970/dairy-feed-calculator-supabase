@@ -209,9 +209,9 @@ export default function HerdGroups() {
         {!showForm && (
           <button
             onClick={() => setShowForm(true)}
-            className="mb-6 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 font-medium"
+            className="mb-6 bg-gradient-to-r from-green-500 to-green-600 text-white px-8 py-4 rounded-xl hover:from-green-600 hover:to-green-700 transition-all duration-300 flex items-center gap-3 font-bold text-lg shadow-lg hover:shadow-xl hover:scale-105 transform"
           >
-            <span className="text-xl">+</span> Nieuwe Groep Toevoegen
+            <span className="text-2xl">+</span> Nieuwe Groep Toevoegen
           </button>
         )}
 

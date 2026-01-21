@@ -53,25 +53,11 @@ export default function BehoefteCard({
         </CardTitle>
       </CardHeader>
       <CardContent className="p-6 space-y-6">
-        {/* Section A: MPR Uitslagen */}
+        {/* Section A: Dierprofiel (moved to first position) */}
         <div className="space-y-3">
           <div className="flex items-center gap-2 pb-2">
             <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-400 flex items-center justify-center font-bold text-lg">
               A
-            </div>
-            <h3 className="text-base font-semibold text-blue-900 dark:text-blue-100">
-              MPR Uitslagen
-              <span className="text-muted-foreground font-normal text-sm ml-2">— Melkproductie Registratie</span>
-            </h3>
-          </div>
-          <MprInputFields onMprChange={onMprChange} />
-        </div>
-
-        {/* Section B: Dierprofiel */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-2 pb-2">
-            <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-400 flex items-center justify-center font-bold text-lg">
-              B
             </div>
             <h3 className="text-base font-semibold text-blue-900 dark:text-blue-100">
               Dierprofiel
@@ -83,6 +69,20 @@ export default function BehoefteCard({
             onProfileChange={handleProfileChange}
             mprData={mprData}
           />
+        </div>
+
+        {/* Section B: MPR Uitslagen (moved to second position) */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 pb-2">
+            <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-400 flex items-center justify-center font-bold text-lg">
+              B
+            </div>
+            <h3 className="text-base font-semibold text-blue-900 dark:text-blue-100">
+              MPR Uitslagen
+              <span className="text-muted-foreground font-normal text-sm ml-2">— Melkproductie Registratie</span>
+            </h3>
+          </div>
+          <MprInputFields onMprChange={onMprChange} />
         </div>
 
         {/* Section C: Fysiologische Parameters */}

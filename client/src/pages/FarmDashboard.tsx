@@ -358,13 +358,15 @@ export default function FarmDashboard() {
           </Link>
           <Link href="/voorraad">
             <a className="bg-blue-100 rounded-xl shadow-lg p-6 hover:bg-blue-200 transition-all transform hover:scale-105 border-2 border-blue-300 relative">
-              <span className="absolute bottom-2 right-2 bg-gray-400 text-white text-xs font-normal px-2 py-0.5 rounded shadow-sm opacity-70">
-                In ontwikkeling
-              </span>
               <div className="flex items-center gap-4">
                 <span className="text-5xl">📦</span>
                 <div>
-                  <h3 className="text-xl font-bold text-gray-800">Voorraad Beheren</h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-xl font-bold text-gray-800">Voorraad Beheren</h3>
+                    <span className="bg-gray-400 text-white text-xs font-normal px-2 py-0.5 rounded shadow-sm opacity-70">
+                      In ontwikkeling
+                    </span>
+                  </div>
                   <p className="text-gray-600 text-sm font-medium">Voorraden bijwerken</p>
                 </div>
               </div>
@@ -372,13 +374,15 @@ export default function FarmDashboard() {
           </Link>
           <Link href="/laadlijst">
             <a className="bg-orange-100 rounded-xl shadow-lg p-6 hover:bg-orange-200 transition-all transform hover:scale-105 border-2 border-orange-300 relative">
-              <span className="absolute bottom-2 right-2 bg-gray-400 text-white text-xs font-normal px-2 py-0.5 rounded shadow-sm opacity-70">
-                In ontwikkeling
-              </span>
               <div className="flex items-center gap-4">
                 <span className="text-5xl">📋</span>
                 <div>
-                  <h3 className="text-xl font-bold text-gray-800">Laadlijst</h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-xl font-bold text-gray-800">Laadlijst</h3>
+                    <span className="bg-gray-400 text-white text-xs font-normal px-2 py-0.5 rounded shadow-sm opacity-70">
+                      In ontwikkeling
+                    </span>
+                  </div>
                   <p className="text-gray-600 text-sm font-medium">Voermengwagen laden</p>
                 </div>
               </div>

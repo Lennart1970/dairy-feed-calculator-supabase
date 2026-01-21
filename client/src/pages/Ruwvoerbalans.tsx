@@ -359,7 +359,7 @@ export default function Ruwvoerbalans() {
                     {vemGap.selfSufficiencyPercent}%
                   </div>
                   <div className="text-xs text-gray-600 mt-1">
-                    {vemGap.selfSufficiencyPercent >= 80 ? '✅ Goed' : vemGap.selfSufficiencyPercent >= 50 ? '⚠️ Matig' : '🔴 Laag'}
+                    {vemGap.selfSufficiencyPercent >= 80 ? '✅ Goed' : vemGap.selfSufficiencyPercent >= 50 ? '⚠️ Intensief' : '🔴 Laag'}
                   </div>
                 </div>
               </div>

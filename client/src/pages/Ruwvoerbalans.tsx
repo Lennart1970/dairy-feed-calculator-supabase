@@ -189,6 +189,89 @@ export default function Ruwvoerbalans() {
                   💡 Bodemtype beïnvloedt opbrengstpotentieel en waterhuishouding. Dedemsvaart: variabele grondwaterstand (risico natte voeten).
                 </p>
               </div>
+
+              {/* Soil Impact Preview Panel */}
+              {soilType === 'zand_veen' && (
+                <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+                  <h3 className="text-sm font-bold text-blue-800 mb-3 flex items-center gap-2">
+                    🔬 Bodem Impact Preview - Zand/Veen (Dedemsvaart)
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                    <div className="bg-white p-3 rounded border border-blue-100">
+                      <p className="font-semibold text-blue-700 mb-1">🌽 Maïs op Zandgrond</p>
+                      <p className="text-gray-600">VEM: <span className="font-bold text-green-600">990</span> | OEB: <span className="font-bold text-orange-600">-40g</span></p>
+                      <p className="text-gray-500 italic">Hoge energie, laag eiwit</p>
+                    </div>
+                    <div className="bg-white p-3 rounded border border-blue-100">
+                      <p className="font-semibold text-blue-700 mb-1">🌿 Gras op Veengrond</p>
+                      <p className="text-gray-600">VEM: <span className="font-bold text-yellow-600">940</span> | OEB: <span className="font-bold text-red-600">+60g tot +87g</span></p>
+                      <p className="text-gray-500 italic">Lagere energie, HOOG eiwit</p>
+                    </div>
+                  </div>
+                  <div className="mt-3 p-2 bg-yellow-50 rounded border border-yellow-200">
+                    <p className="text-xs text-yellow-800">
+                      ⚠️ <strong>Veen-correctie bij slechte drainage:</strong> -50 VEM, -5g DVE, +10g OEB (stikstofmineralisatie)
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Future Enhancements Roadmap Card */}
+              <div className="mb-6 p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg border border-purple-200">
+                <h3 className="text-sm font-bold text-purple-800 mb-3 flex items-center gap-2">
+                  🚀 Toekomstige Bodemtype-Integratie (Roadmap)
+                </h3>
+                <p className="text-xs text-purple-700 mb-3">
+                  De volgende 6 gebieden worden automatisch aangepast op basis van bodemtype selectie:
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 text-xs">
+                  <div className="flex items-start gap-2 p-2 bg-white rounded border border-purple-100">
+                    <span className="text-purple-600 font-bold">1.</span>
+                    <div>
+                      <p className="font-semibold text-purple-700">Gewas Allocatie</p>
+                      <p className="text-gray-500">Maïs → zand, Gras → veen</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2 p-2 bg-white rounded border border-purple-100">
+                    <span className="text-purple-600 font-bold">2.</span>
+                    <div>
+                      <p className="font-semibold text-purple-700">Kwaliteitsvoorspelling</p>
+                      <p className="text-gray-500">VEM, DVE, OEB per bodem</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2 p-2 bg-white rounded border border-purple-100">
+                    <span className="text-purple-600 font-bold">3.</span>
+                    <div>
+                      <p className="font-semibold text-purple-700">Veen-correctie</p>
+                      <p className="text-gray-500">Drainage-afhankelijke penalty</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2 p-2 bg-white rounded border border-purple-100">
+                    <span className="text-purple-600 font-bold">4.</span>
+                    <div>
+                      <p className="font-semibold text-purple-700">Rantsoen Waarschuwingen</p>
+                      <p className="text-gray-500">OEB-risico, structuur, ureum</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2 p-2 bg-white rounded border border-purple-100">
+                    <span className="text-purple-600 font-bold">5.</span>
+                    <div>
+                      <p className="font-semibold text-purple-700">Aankoopadvies</p>
+                      <p className="text-gray-500">Zand: eiwit | Veen: energie</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2 p-2 bg-white rounded border border-purple-100">
+                    <span className="text-purple-600 font-bold">6.</span>
+                    <div>
+                      <p className="font-semibold text-purple-700">Mineralen Alert</p>
+                      <p className="text-gray-500">Koper (Cu) op veengrond</p>
+                    </div>
+                  </div>
+                </div>
+                <p className="text-xs text-purple-600 mt-3 italic">
+                  📊 Gebaseerd op CVB 2025 bodemtype-specifieke voederwaarden
+                </p>
+              </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Maize */}

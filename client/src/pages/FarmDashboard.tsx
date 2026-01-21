@@ -358,8 +358,8 @@ export default function FarmDashboard() {
           </Link>
           <Link href="/voorraad">
             <a className="bg-blue-100 rounded-xl shadow-lg p-6 hover:bg-blue-200 transition-all transform hover:scale-105 border-2 border-blue-300 relative">
-              <span className="absolute top-2 right-2 bg-orange-500 text-white text-xs font-semibold px-2 py-1 rounded-full shadow-md">
-                In Ontwikkeling
+              <span className="absolute bottom-2 right-2 bg-gray-400 text-white text-xs font-normal px-2 py-0.5 rounded shadow-sm opacity-70">
+                In ontwikkeling
               </span>
               <div className="flex items-center gap-4">
                 <span className="text-5xl">📦</span>
@@ -372,8 +372,8 @@ export default function FarmDashboard() {
           </Link>
           <Link href="/laadlijst">
             <a className="bg-orange-100 rounded-xl shadow-lg p-6 hover:bg-orange-200 transition-all transform hover:scale-105 border-2 border-orange-300 relative">
-              <span className="absolute top-2 right-2 bg-orange-500 text-white text-xs font-semibold px-2 py-1 rounded-full shadow-md">
-                In Ontwikkeling
+              <span className="absolute bottom-2 right-2 bg-gray-400 text-white text-xs font-normal px-2 py-0.5 rounded shadow-sm opacity-70">
+                In ontwikkeling
               </span>
               <div className="flex items-center gap-4">
                 <span className="text-5xl">📋</span>

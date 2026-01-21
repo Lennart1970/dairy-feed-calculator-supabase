@@ -567,11 +567,6 @@ export default function HerdGroups() {
                       </div>
                       
                       <div className="flex items-center gap-2">
-                        <Link href={`/?groupId=${group.id}`}>
-                          <a className="text-blue-600 hover:text-blue-800 px-3 py-1 rounded border border-blue-200 hover:bg-blue-50 text-sm">
-                            📊 Rantsoen
-                          </a>
-                        </Link>
                         <button
                           onClick={() => handleEdit(group)}
                           className="text-green-600 hover:text-green-800 px-3 py-1 rounded border border-green-200 hover:bg-green-50 text-sm"

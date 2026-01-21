@@ -105,7 +105,25 @@ export default function RationAssignment() {
   const groupAnalyses = useMemo(() => {
     if (!groups || !rationDensity) return [];
 
-    return groups.map(group => {
+    // Sort groups: lactating by production (descending), then dry cows last
+    const sortedGroups = [...groups].sort((a, b) => {
+      const isDryA = a.lifeStage === 'dry';
+      const isDryB = b.lifeStage === 'dry';
+      
+      // Dry cows always go to the end
+      if (isDryA && !isDryB) return 1;
+      if (!isDryA && isDryB) return -1;
+      
+      // Both lactating: sort by milk production (descending - highest first)
+      if (!isDryA && !isDryB) {
+        return (b.avgMilkYieldKg || 0) - (a.avgMilkYieldKg || 0);
+      }
+      
+      // Both dry: maintain original order
+      return 0;
+    });
+
+    return sortedGroups.map(group => {
       const requirements = calculateGroupRequirements(group);
       const gap = calculateGap(
         rationDensity, 

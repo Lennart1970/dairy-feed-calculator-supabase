@@ -289,9 +289,9 @@ export default function Ruwvoerbalans() {
                     </span>
                   </div>
                   
-                  <div className="flex justify-between items-center p-3 bg-green-100 rounded-lg border-2 border-green-300 mt-3">
-                    <span className="font-bold text-gray-800">Totale Jaarlijkse Voorraad:</span>
-                    <span className="font-bold text-2xl text-green-700">
+                  <div className="flex justify-between items-center p-5 bg-gradient-to-r from-green-100 to-green-200 rounded-xl border-2 border-green-400 mt-3 shadow-lg">
+                    <span className="font-bold text-lg text-gray-800">Totale Jaarlijkse Voorraad:</span>
+                    <span className="font-extrabold text-4xl text-green-700 drop-shadow-md">
                       {(vemSupply.totalVem / 1000000).toFixed(1)} miljoen VEM
                     </span>
                   </div>

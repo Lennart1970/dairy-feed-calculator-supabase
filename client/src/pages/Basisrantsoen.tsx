@@ -45,6 +45,10 @@ export default function Basisrantsoen() {
   const [rationDescription, setRationDescription] = useState<string>('');
   const [targetMilkKg, setTargetMilkKg] = useState<number>(24);
   const [selectedFeeds, setSelectedFeeds] = useState<RationFeed[]>([]);
+  
+  // Calculation parameters
+  const [intakeKgDs, setIntakeKgDs] = useState<number>(15);
+  const [cowWeight, setCowWeight] = useState<number>(650);
 
   // Fetch available feeds (roughage only)
   const { data: allFeeds } = trpc.feeds.list.useQuery();
@@ -114,16 +118,22 @@ export default function Basisrantsoen() {
     };
   }, [selectedFeeds]);
 
-  // Calculate milk support
-  const milkSupport = useMemo(() => {
-    if (mixDensity.vem === 0) return 0;
-    const intakeKgDs = 15;
+  // Calculate milk support with detailed breakdown
+  const milkSupportCalc = useMemo(() => {
+    if (mixDensity.vem === 0) return { totalVem: 0, maintenanceVem: 0, productionVem: 0, milkKg: 0 };
     const totalVem = mixDensity.vem * intakeKgDs;
-    const maintenanceVem = 53.0 * Math.pow(650, 0.75);
+    const maintenanceVem = 53.0 * Math.pow(cowWeight, 0.75);
     const productionVem = totalVem - maintenanceVem;
     const milkKg = productionVem / 442;
-    return Math.max(0, Math.round(milkKg * 10) / 10);
-  }, [mixDensity]);
+    return {
+      totalVem: Math.round(totalVem),
+      maintenanceVem: Math.round(maintenanceVem),
+      productionVem: Math.round(productionVem),
+      milkKg: Math.max(0, Math.round(milkKg * 10) / 10),
+    };
+  }, [mixDensity, intakeKgDs, cowWeight]);
+  
+  const milkSupport = milkSupportCalc.milkKg;
 
   // Reset form
   const resetForm = () => {

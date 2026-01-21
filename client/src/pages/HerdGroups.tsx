@@ -190,6 +190,21 @@ export default function HerdGroups() {
           </div>
         </div>
 
+        {/* Breed Indicator */}
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">🐄</span>
+            <div>
+              <p className="font-semibold text-blue-900">
+                Ras: <span className="text-blue-700">Holstein Friesian (HF)</span>
+              </p>
+              <p className="text-sm text-blue-700">
+                Andere rassen (Jersey, MRIJ, Brown Swiss, Fleckvieh) worden in toekomstige versies toegevoegd.
+              </p>
+            </div>
+          </div>
+        </div>
+
         {/* Add Group Button */}
         {!showForm && (
           <button

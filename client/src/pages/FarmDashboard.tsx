@@ -252,7 +252,6 @@ export default function FarmDashboard() {
               </div>
             </a>
           </Link>
-
           <Link href="/lab-rapporten">
             <a className="bg-cyan-100 rounded-xl shadow-lg p-6 hover:bg-cyan-200 transition-all transform hover:scale-105 border-2 border-cyan-300">
               <div className="flex items-center gap-4">
@@ -264,7 +263,6 @@ export default function FarmDashboard() {
               </div>
             </a>
           </Link>
-
           <Link href="/basisrantsoen">
             <a className="bg-orange-100 rounded-xl shadow-lg p-6 hover:bg-orange-200 transition-all transform hover:scale-105 border-2 border-orange-300">
               <div className="flex items-center gap-4">
@@ -276,7 +274,6 @@ export default function FarmDashboard() {
               </div>
             </a>
           </Link>
-
           <Link href="/rantsoen-toewijzing">
             <a className="bg-indigo-100 rounded-xl shadow-lg p-6 hover:bg-indigo-200 transition-all transform hover:scale-105 border-2 border-indigo-300">
               <div className="flex items-center gap-4">
@@ -288,19 +285,6 @@ export default function FarmDashboard() {
               </div>
             </a>
           </Link>
-
-          <Link href="/calculator">
-            <a className="bg-teal-100 rounded-xl shadow-lg p-6 hover:bg-teal-200 transition-all transform hover:scale-105 border-2 border-teal-300">
-              <div className="flex items-center gap-4">
-                <span className="text-5xl">🧮</span>
-                <div>
-                  <h3 className="text-xl font-bold text-gray-800">Rantsoen Calculator</h3>
-                  <p className="text-gray-600 text-sm font-medium">Bereken rantsoen voor individuele koe</p>
-                </div>
-              </div>
-            </a>
-          </Link>
-
           <Link href="/voorraad">
             <a className="bg-blue-100 rounded-xl shadow-lg p-6 hover:bg-blue-200 transition-all transform hover:scale-105 border-2 border-blue-300 relative">
               <span className="absolute top-2 right-2 bg-orange-500 text-white text-xs font-semibold px-2 py-1 rounded-full shadow-md">
@@ -315,7 +299,6 @@ export default function FarmDashboard() {
               </div>
             </a>
           </Link>
-
           <Link href="/laadlijst">
             <a className="bg-orange-100 rounded-xl shadow-lg p-6 hover:bg-orange-200 transition-all transform hover:scale-105 border-2 border-orange-300 relative">
               <span className="absolute top-2 right-2 bg-orange-500 text-white text-xs font-semibold px-2 py-1 rounded-full shadow-md">
@@ -326,6 +309,17 @@ export default function FarmDashboard() {
                 <div>
                   <h3 className="text-xl font-bold text-gray-800">Laadlijst</h3>
                   <p className="text-gray-600 text-sm font-medium">Voermengwagen laden</p>
+                </div>
+              </div>
+            </a>
+          </Link>
+          <Link href="/calculator">
+            <a className="bg-teal-100 rounded-xl shadow-lg p-6 hover:bg-teal-200 transition-all transform hover:scale-105 border-2 border-teal-300">
+              <div className="flex items-center gap-4">
+                <span className="text-5xl">🧮</span>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-800">Rantsoen Calculator</h3>
+                  <p className="text-gray-600 text-sm font-medium">Bereken rantsoen voor individuele koe</p>
                 </div>
               </div>
             </a>

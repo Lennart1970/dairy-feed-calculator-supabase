@@ -540,7 +540,16 @@ export default function HerdGroups() {
             </div>
           ) : (
             <div className="divide-y divide-gray-100">
-              {groups?.map((group) => {
+              {groups
+                ?.slice()
+                .sort((a, b) => {
+                  // Droogstaand always last
+                  if (a.lifeStage === 'dry' && b.lifeStage !== 'dry') return 1;
+                  if (a.lifeStage !== 'dry' && b.lifeStage === 'dry') return -1;
+                  // Both dry or both lactating: sort by milk yield (descending)
+                  return b.avgMilkYieldKg - a.avgMilkYieldKg;
+                })
+                .map((group) => {
                 const req = calculateGroupRequirements(group);
                 return (
                   <div key={group.id} className="p-6 hover:bg-gray-50">

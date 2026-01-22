@@ -146,10 +146,10 @@ export default function AuditView() {
     };
   }, [herdGroups]);
 
-  // Calculate VEM requirements per group
+  // Calculate VEM requirements per group (sorted)
   const groupRequirements = useMemo(() => {
-    if (!herdGroups) return [];
-    return herdGroups.map(group => {
+    if (!sortedGroups || sortedGroups.length === 0) return [];
+    return sortedGroups.map(group => {
       const weight = group.avgWeightKg;
       const milkYield = group.avgMilkYieldKg;
       const fatPercent = group.avgFatPercent;
@@ -183,7 +183,7 @@ export default function AuditView() {
         dsIntake: Math.round(dsIntake * 10) / 10
       };
     });
-  }, [herdGroups]);
+  }, [sortedGroups]);
 
   // Roughage balance calculation
   const roughageBalance = useMemo(() => {

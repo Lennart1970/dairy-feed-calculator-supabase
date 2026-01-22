@@ -399,6 +399,17 @@ export default function FarmDashboard() {
               </div>
             </a>
           </Link>
+          <Link href="/audit">
+            <a className="bg-slate-100 rounded-xl shadow-lg p-6 hover:bg-slate-200 transition-all transform hover:scale-105 border-2 border-slate-300">
+              <div className="flex items-center gap-4">
+                <span className="text-5xl">🔬</span>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-800">Audit View</h3>
+                  <p className="text-gray-600 text-sm font-medium">Alle formules & berekeningen</p>
+                </div>
+              </div>
+            </a>
+          </Link>
         </div>
 
         {/* Inventory Alerts */}

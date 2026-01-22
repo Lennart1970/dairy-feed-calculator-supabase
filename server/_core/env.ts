@@ -5,9 +5,10 @@ export const ENV = {
   oAuthServerUrl: process.env.OAUTH_SERVER_URL ?? "",
   ownerOpenId: process.env.OWNER_OPEN_ID ?? "",
   isProduction: process.env.NODE_ENV === "production",
-  forgeApiUrl: process.env.BUILT_IN_FORGE_API_URL ?? "",
-  forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? "",
-  // Supabase Storage credentials (separate from LLM/Forge)
+  // LLM API credentials - use OPENAI_API_KEY or fallback to BUILT_IN_FORGE_API_KEY
+  forgeApiUrl: process.env.OPENAI_API_BASE ?? process.env.BUILT_IN_FORGE_API_URL ?? "",
+  forgeApiKey: process.env.OPENAI_API_KEY ?? process.env.BUILT_IN_FORGE_API_KEY ?? "",
+  // Supabase Storage credentials (separate from LLM)
   supabaseUrl: process.env.SUPABASE_URL ?? "",
   supabaseAnonKey: process.env.SUPABASE_ANON_KEY ?? "",
 };

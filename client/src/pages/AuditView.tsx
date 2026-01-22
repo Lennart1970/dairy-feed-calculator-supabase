@@ -440,9 +440,112 @@ export default function AuditView() {
                 <strong>Berekeningslegenda:</strong>
                 <span className="ml-2">VEM Ond. = 53.0 × LG^0.75</span>
                 <span className="mx-2">|</span>
-                <span>VEM Prod. = Melk × 442</span>
+                <span>VEM Prod. = 390 × FPCM</span>
                 <span className="mx-2">|</span>
                 <span>FPCM = Melk × (0.337 + 0.116×Vet% + 0.06×Eiwit%)</span>
+              </div>
+
+              {/* Detailed Calculation Breakdowns per Group */}
+              <div className="mt-6">
+                <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                  <span>🔍</span> Berekeningsdetails per Groep (CVB 2025)
+                </h3>
+                <div className="space-y-4">
+                  {groupRequirements.map((group) => {
+                    // Recalculate with full precision for display
+                    const weight = group.avgWeightKg;
+                    const milkYield = group.avgMilkYieldKg;
+                    const fatPercent = group.avgFatPercent;
+                    const proteinPercent = group.avgProteinPercent;
+                    
+                    // FPCM calculation
+                    const fpcmFactor = 0.337 + 0.116 * fatPercent + 0.06 * proteinPercent;
+                    const fpcm = milkYield * fpcmFactor;
+                    
+                    // VEM calculations (using 390 × FPCM for production)
+                    const vemMaintenance = 53.0 * Math.pow(weight, 0.75);
+                    const vemProduction = 390 * fpcm;
+                    const vemTotal = vemMaintenance + vemProduction;
+                    
+                    // DVE calculations
+                    const dveMaintenance = 54 + 0.1 * weight;
+                    const proteinYield = milkYield * (proteinPercent / 100) * 1000; // g eiwit
+                    const dveProduction = 1.396 * proteinYield + 0.000195 * Math.pow(proteinYield, 2);
+                    const dveTotal = dveMaintenance + dveProduction;
+                    
+                    // Group totals
+                    const groupVemTotal = vemTotal * group.cowCount;
+                    const groupDveTotal = dveTotal * group.cowCount;
+                    
+                    return (
+                      <div key={group.id} className="bg-gradient-to-r from-slate-700/50 to-slate-800/50 rounded-lg p-4 border border-slate-600">
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="font-bold text-white flex items-center gap-2">
+                            <span>🐄</span> {group.name}
+                            {group.lifeStage === 'dry' && <span className="text-xs bg-amber-600 px-2 py-0.5 rounded">Droog</span>}
+                          </h4>
+                          <div className="text-sm text-slate-400">
+                            {group.cowCount} koeien | {weight} kg | {milkYield} kg melk | {fatPercent}% vet | {proteinPercent}% eiwit
+                          </div>
+                        </div>
+                        
+                        <div className="grid md:grid-cols-3 gap-4">
+                          {/* FPCM Calculation */}
+                          <div className="bg-slate-800/50 rounded-lg p-3">
+                            <div className="text-blue-400 font-semibold mb-2 text-sm">1. FPCM (Vet- en Eiwitgecorrigeerde Melk)</div>
+                            <div className="font-mono text-xs space-y-1 text-slate-300">
+                              <div className="text-slate-400">FPCM = Melk × (0.337 + 0.116 × Vet% + 0.06 × Eiwit%)</div>
+                              <div className="text-yellow-300">FPCM = {milkYield} × (0.337 + 0.116 × {fatPercent} + 0.06 × {proteinPercent})</div>
+                              <div>FPCM = {milkYield} × {fpcmFactor.toFixed(3)}</div>
+                              <div className="text-emerald-400 font-bold">FPCM = {fpcm.toFixed(1)} kg</div>
+                            </div>
+                          </div>
+                          
+                          {/* VEM Calculation */}
+                          <div className="bg-slate-800/50 rounded-lg p-3">
+                            <div className="text-orange-400 font-semibold mb-2 text-sm">2. VEM (Energie)</div>
+                            <div className="font-mono text-xs space-y-1 text-slate-300">
+                              <div className="text-slate-400">VEM = VEM_onderhoud + VEM_productie</div>
+                              <div className="text-slate-400">VEM_onderhoud = 53.0 × Gewicht^0.75</div>
+                              <div>VEM_onderhoud = 53.0 × {weight}^0.75 = {Math.round(vemMaintenance)}</div>
+                              <div className="text-slate-400">VEM_productie = 390 × FPCM</div>
+                              <div>VEM_productie = 390 × {fpcm.toFixed(1)} = {Math.round(vemProduction)}</div>
+                              <div className="text-emerald-400 font-bold">VEM_totaal = {Math.round(vemMaintenance)} + {Math.round(vemProduction)} = {Math.round(vemTotal)}</div>
+                            </div>
+                          </div>
+                          
+                          {/* DVE Calculation */}
+                          <div className="bg-slate-800/50 rounded-lg p-3">
+                            <div className="text-purple-400 font-semibold mb-2 text-sm">3. DVE (Eiwit)</div>
+                            <div className="font-mono text-xs space-y-1 text-slate-300">
+                              <div className="text-slate-400">DVE = DVE_onderhoud + DVE_productie</div>
+                              <div className="text-slate-400">DVE_onderhoud = 54 + 0.1 × Gewicht</div>
+                              <div>DVE_onderhoud = 54 + 0.1 × {weight} = {Math.round(dveMaintenance)}g</div>
+                              <div className="text-slate-400">Eiwitopbrengst = Melk × Eiwit% × 1000</div>
+                              <div>Eiwitopbrengst = {milkYield} × {proteinPercent}% × 1000 = {Math.round(proteinYield)}g</div>
+                              <div className="text-slate-400">DVE_productie = 1.396 × Eiwitopbr + 0.000195 × Eiwitopbr²</div>
+                              <div>DVE_productie = {Math.round(dveProduction)}g</div>
+                              <div className="text-emerald-400 font-bold">DVE_totaal = {Math.round(dveMaintenance)} + {Math.round(dveProduction)} = {Math.round(dveTotal)}g</div>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Group Totals */}
+                        <div className="mt-3 pt-3 border-t border-slate-600 flex justify-end gap-6 text-sm">
+                          <div className="text-slate-400">
+                            Totaal voor groep ({group.cowCount} koeien):
+                          </div>
+                          <div className="text-orange-400 font-mono">
+                            {(groupVemTotal / 1000).toFixed(0)}k VEM
+                          </div>
+                          <div className="text-purple-400 font-mono">
+                            {(groupDveTotal / 1000).toFixed(1)} kg DVE
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           )}

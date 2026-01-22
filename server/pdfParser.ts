@@ -4,7 +4,6 @@
  */
 
 import { invokeLLM } from "./_core/llm";
-import { storagePut } from "./storage";
 
 export interface ParsedFeedData {
   productName: string;
@@ -28,24 +27,10 @@ export interface ParseResult {
 }
 
 /**
- * Upload PDF to storage and get a public URL for LLM processing
- */
-export async function uploadPdfForProcessing(
-  pdfBuffer: Buffer,
-  fileName: string
-): Promise<string> {
-  const timestamp = Date.now();
-  const safeFileName = fileName.replace(/[^a-zA-Z0-9.-]/g, "_");
-  const key = `lab-reports/${timestamp}-${safeFileName}`;
-  
-  const { url } = await storagePut(key, pdfBuffer, "application/pdf");
-  return url;
-}
-
-/**
  * Parse a lab report PDF using LLM vision capabilities
+ * Uses base64 encoding for Chat Completions API compatibility
  */
-export async function parseLabReportPdf(pdfUrl: string): Promise<ParseResult> {
+export async function parseLabReportPdf(pdfBase64: string): Promise<ParseResult> {
   try {
     const systemPrompt = `Je bent een expert in het analyseren van Nederlandse kuilanalyse rapporten van laboratoria zoals Eurofins Agro en BLGG AgroXpertus.
 
@@ -91,7 +76,16 @@ Geef je antwoord ALLEEN als een JSON object in dit exacte formaat:
 Converteer DS% van g/kg naar percentage als nodig (bijv. 410 g/kg -> 41).
 Als een waarde niet gevonden kan worden, gebruik dan een realistische schatting gebaseerd op het type product.`;
 
-    console.log("[pdfParser] Calling LLM with PDF URL:", pdfUrl);
+    console.log("[pdfParser] Calling LLM with base64 PDF data");
+    
+    // Ensure base64 data doesn't have data URL prefix
+    let cleanBase64 = pdfBase64;
+    if (cleanBase64.includes(',')) {
+      cleanBase64 = cleanBase64.split(',')[1];
+    }
+    
+    // Create data URL for the PDF
+    const pdfDataUrl = `data:application/pdf;base64,${cleanBase64}`;
     
     const response = await invokeLLM({
       messages: [
@@ -101,10 +95,10 @@ Als een waarde niet gevonden kan worden, gebruik dan een realistische schatting 
           content: [
             { type: "text", text: userPrompt },
             { 
-              type: "file_url", 
-              file_url: { 
-                url: pdfUrl,
-                mime_type: "application/pdf"
+              type: "image_url", 
+              image_url: { 
+                url: pdfDataUrl,
+                detail: "high"
               } 
             }
           ]
@@ -166,4 +160,13 @@ Als een waarde niet gevonden kan worden, gebruik dan een realistische schatting 
       error: error instanceof Error ? error.message : "Onbekende fout bij het parsen van het rapport"
     };
   }
+}
+
+// Legacy function for URL-based parsing (kept for backward compatibility)
+export async function uploadPdfForProcessing(
+  pdfBuffer: Buffer,
+  fileName: string
+): Promise<string> {
+  // Convert buffer to base64
+  return pdfBuffer.toString('base64');
 }

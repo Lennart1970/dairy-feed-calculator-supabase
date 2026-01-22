@@ -16,7 +16,7 @@ import {
   // Lab Results
   saveLabResultAsFeed, getLabResultsForFarm, getLabResultById, deleteLabResult
 } from "./db";
-import { uploadPdfForProcessing, parseLabReportPdf } from "./pdfParser";
+import { parseLabReportPdf } from "./pdfParser";
 import { z } from "zod";
 
 export const appRouter = router({
@@ -207,20 +207,8 @@ export const appRouter = router({
       }))
       .mutation(async ({ input }) => {
         try {
-          // Strip data URL prefix if present (e.g., "data:application/pdf;base64,")
-          let base64Data = input.pdfBase64;
-          if (base64Data.includes(',')) {
-            base64Data = base64Data.split(',')[1];
-          }
-          
-          // Convert base64 to buffer
-          const pdfBuffer = Buffer.from(base64Data, "base64");
-          
-          // Upload PDF to storage to get a URL
-          const pdfUrl = await uploadPdfForProcessing(pdfBuffer, input.fileName);
-          
-          // Parse the PDF using LLM
-          const result = await parseLabReportPdf(pdfUrl);
+          // Parse the PDF using LLM with base64 data directly
+          const result = await parseLabReportPdf(input.pdfBase64);
           
           return result;
         } catch (error) {

@@ -111,7 +111,7 @@ const escapeCSV = (value: string | number | null | undefined): string => {
 };
 
 export default function AuditView() {
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['herd', 'farm', 'formulas']));
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['herd', 'farm', 'bouwplan_details', 'formulas']));
 
   // Fetch all data
   const { data: farm } = trpc.farm.get.useQuery({ farmId: 1 });
@@ -395,6 +395,98 @@ export default function AuditView() {
                   </div>
                 </div>
               )}
+            </div>
+          )}
+        </div>
+
+        {/* ============================================ */}
+        {/* SECTION 1B: Bouwplan Details (VEM Calculations) */}
+        {/* ============================================ */}
+        <div className="bg-slate-800 rounded-xl shadow-lg overflow-hidden">
+          <SectionHeader id="bouwplan_details" title="Bouwplan (Details) — VEM Jaarbalans" icon="⚡" />
+          {expandedSections.has('bouwplan_details') && farm && roughageBalance && (
+            <div className="p-6">
+              <div className="bg-gradient-to-r from-blue-900/30 to-purple-900/30 rounded-lg p-5 border border-blue-600">
+                <h3 className="font-bold text-white mb-4 flex items-center gap-2 text-lg">
+                  <span>⚡</span> VEM Jaarbalans (Energiebalans) — CVB 2022 Metabolisch Gewicht
+                </h3>
+                
+                <div className="space-y-6">
+                  {/* Jaarlijkse Energievoorraad */}
+                  <div>
+                    <h4 className="text-blue-300 font-semibold mb-3">Jaarlijkse Energievoorraad (VEM):</h4>
+                    
+                    {/* Maize Calculation */}
+                    <div className="bg-slate-800/50 rounded-lg p-4 mb-3">
+                      <div className="text-amber-400 font-semibold mb-2">Maïs:</div>
+                      <div className="font-mono text-sm space-y-1 text-slate-300">
+                        <div>{farm.hectaresMaize} ha × {farm.yieldMaizeTonDsHa} ton DS/ha × 990 VEM/kg</div>
+                        <div className="text-emerald-400 font-bold text-base">
+                          = {((farm.hectaresMaize * farm.yieldMaizeTonDsHa * 1000 * 990) / 1000000).toFixed(1)} miljoen VEM
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Grass Calculation with Snede Breakdown */}
+                    <div className="bg-slate-800/50 rounded-lg p-4 mb-3">
+                      <div className="text-green-400 font-semibold mb-3 flex items-center gap-2">
+                        <span>🌱</span> Gras Snede Verdeling (Professionele Methode):
+                      </div>
+                      
+                      <div className="ml-4 space-y-3 text-sm">
+                        {/* First Cut - Spring */}
+                        <div className="border-l-2 border-green-500 pl-3">
+                          <div className="text-blue-300 mb-1">• <strong>40%</strong> = Voorjaarskuil (1e Snede, Mei) – Hoge energie, lage structuur</div>
+                          <div className="font-mono text-slate-300 ml-4">
+                            Gras Voorjaar (40%): {(farm.hectaresGrass * farm.yieldGrassTonDsHa * 0.4).toFixed(1)} ton DS × 980 VEM/kg
+                          </div>
+                          <div className="font-mono text-emerald-400 font-bold ml-4">
+                            = {((farm.hectaresGrass * farm.yieldGrassTonDsHa * 0.4 * 1000 * 980) / 1000000).toFixed(1)} miljoen VEM
+                          </div>
+                        </div>
+                        
+                        {/* Second+ Cut - Summer/Fall */}
+                        <div className="border-l-2 border-yellow-500 pl-3">
+                          <div className="text-yellow-300 mb-1">• <strong>60%</strong> = Zomer/Najaarskuil (2e+ Snede, Juli-Aug) – Lagere energie, hoge structuur</div>
+                          <div className="font-mono text-slate-300 ml-4">
+                            Gras Zomer (60%): {(farm.hectaresGrass * farm.yieldGrassTonDsHa * 0.6).toFixed(1)} ton DS × 900 VEM/kg
+                          </div>
+                          <div className="font-mono text-emerald-400 font-bold ml-4">
+                            = {((farm.hectaresGrass * farm.yieldGrassTonDsHa * 0.6 * 1000 * 900) / 1000000).toFixed(1)} miljoen VEM
+                          </div>
+                        </div>
+                        
+                        <div className="text-xs text-slate-400 italic mt-2 pl-3">
+                          Bron: ABZ Diervoeding, CVB Standards, ILVO research
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Total VEM Supply */}
+                    <div className="bg-gradient-to-r from-emerald-900/40 to-teal-900/40 rounded-lg p-4 border-2 border-emerald-500">
+                      <div className="flex justify-between items-center">
+                        <div className="text-white font-bold text-lg">Totale Jaarlijkse Voorraad:</div>
+                        <div className="text-emerald-300 font-bold text-2xl font-mono">
+                          {(
+                            (farm.hectaresMaize * farm.yieldMaizeTonDsHa * 1000 * 990 +
+                            farm.hectaresGrass * farm.yieldGrassTonDsHa * 0.4 * 1000 * 980 +
+                            farm.hectaresGrass * farm.yieldGrassTonDsHa * 0.6 * 1000 * 900) / 1000000
+                          ).toFixed(1)} miljoen VEM
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Note about DS vs VEM */}
+                  <div className="bg-blue-900/20 rounded-lg p-3 border border-blue-700">
+                    <div className="text-xs text-blue-200">
+                      <strong>💡 Opmerking:</strong> De Ruwvoerbalans hierboven toont DS (Droge Stof) voorraad. 
+                      Deze VEM Jaarbalans toont de <strong>energievoorraad</strong> in VEM, wat relevanter is voor voerplanning.
+                      VEM waarden variëren per snede door verschillen in groeiomstandigheden en rijpheid.
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
         </div>

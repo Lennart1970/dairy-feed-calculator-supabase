@@ -345,9 +345,13 @@ export default function AuditView() {
                         <td className="py-2">Opbrengst Maïs</td>
                         <td className="py-2 text-right font-mono text-white">{farm.yieldMaizeTonDsHa} ton DS/ha</td>
                       </tr>
-                      <tr>
+                      <tr className="border-b border-slate-600">
                         <td className="py-2">Kwaliteitsniveau</td>
                         <td className="py-2 text-right font-mono text-emerald-400 capitalize">{farm.qualityLevel}</td>
+                      </tr>
+                      <tr>
+                        <td className="py-2">Bodemtype</td>
+                        <td className="py-2 text-right font-mono text-white">Veengrond</td>
                       </tr>
                     </tbody>
                   </table>

@@ -1,4 +1,4 @@
-import { getLLM } from "./_core/llm";
+import { invokeLLM } from "./_core/llm";
 import { fromPath } from "pdf2pic";
 import { writeFileSync, unlinkSync, mkdirSync } from "fs";
 import { join } from "path";
@@ -9,7 +9,6 @@ import { tmpdir } from "os";
  * Converts PDF to images first, then analyzes with GPT-4 Vision
  */
 export async function parseLabReportPdf(pdfBase64: string) {
-  const llm = getLLM();
   let tempPdfPath: string | null = null;
   const tempImagePaths: string[] = [];
   
@@ -66,9 +65,8 @@ export async function parseLabReportPdf(pdfBase64: string) {
       }
     }));
     
-    // Call OpenAI Vision API
-    const response = await llm.chat.completions.create({
-      model: "gpt-4o",
+    // Call OpenAI Vision API using invokeLLM
+    const response = await invokeLLM({
       messages: [
         {
           role: "user",
@@ -119,12 +117,11 @@ Als een waarde niet gevonden kan worden, gebruik dan null.`
           ]
         }
       ],
-      max_tokens: 2000,
-      temperature: 0.1
+      maxTokens: 2000
     });
     
     const content = response.choices[0]?.message?.content;
-    if (!content) {
+    if (!content || typeof content !== 'string') {
       throw new Error("Geen response van AI model");
     }
     

@@ -300,6 +300,10 @@ export default function AuditView() {
                         <td className="py-2 text-right font-mono text-white">{farm.name}</td>
                       </tr>
                       <tr className="border-b border-slate-600">
+                        <td className="py-2">Ras</td>
+                        <td className="py-2 text-right font-mono text-white">Holstein Friesian (HF)</td>
+                      </tr>
+                      <tr className="border-b border-slate-600">
                         <td className="py-2">Totaal Koeien</td>
                         <td className="py-2 text-right font-mono text-white">{farm.herdSize}</td>
                       </tr>

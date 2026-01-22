@@ -1,172 +1,167 @@
-/**
- * PDF Lab Report Parser
- * Uses LLM to extract feed values from Dutch kuilanalyse reports
- */
-
-import { invokeLLM } from "./_core/llm";
-
-export interface ParsedFeedData {
-  productName: string;
-  productType: string;
-  vem: number;
-  dve: number;
-  oeb: number;
-  dsPercent: number;
-  sw: number;
-  rawProtein?: number;  // RE (Ruw eiwit)
-  rawFiber?: number;    // RC (Ruwe celstof)
-  sugar?: number;       // Suiker
-  starch?: number;      // Zetmeel
-}
-
-export interface ParseResult {
-  success: boolean;
-  data?: ParsedFeedData;
-  error?: string;
-  rawResponse?: string;
-}
+import { getLLM } from "./_core/llm";
+import { fromPath } from "pdf2pic";
+import { writeFileSync, unlinkSync, mkdirSync } from "fs";
+import { join } from "path";
+import { tmpdir } from "os";
 
 /**
- * Parse a lab report PDF using LLM vision capabilities
- * Uses base64 encoding for Chat Completions API compatibility
+ * Parse a lab report PDF using OpenAI Vision API
+ * Converts PDF to images first, then analyzes with GPT-4 Vision
  */
-export async function parseLabReportPdf(pdfBase64: string): Promise<ParseResult> {
+export async function parseLabReportPdf(pdfBase64: string) {
+  const llm = getLLM();
+  let tempPdfPath: string | null = null;
+  const tempImagePaths: string[] = [];
+  
   try {
-    const systemPrompt = `Je bent een expert in het analyseren van Nederlandse kuilanalyse rapporten van laboratoria zoals Eurofins Agro en BLGG AgroXpertus.
-
-Je taak is om de voederwaarden te extraheren uit het lab rapport en deze terug te geven in een gestructureerd JSON formaat.
-
-Let specifiek op de volgende waarden:
-- Product naam (bijv. "Graskuil", "Snijmaïs")
-- Product type (bijv. "1e snede", "2e snede", "Oogst 2024")
-- VEM (Voeder Eenheid Melk) - per kg DS
-- DVE (Darm Verteerbaar Eiwit) - in grammen per kg DS
-- OEB (Onbestendig Eiwit Balans) - in grammen per kg DS (kan negatief zijn)
-- DS% (Droge Stof percentage) - in g/kg of als percentage
-- SW (Structuurwaarde) - per kg DS
-- RE (Ruw eiwit) - optioneel, in g/kg DS
-- RC (Ruwe celstof) - optioneel, in g/kg DS
-- Suiker - optioneel, in g/kg DS
-- Zetmeel - optioneel, in g/kg DS
-
-BELANGRIJK:
-- DS% wordt vaak weergegeven als g/kg (bijv. 410 g/kg = 41%)
-- VEM is meestal een getal tussen 800-1100
-- DVE is meestal een getal tussen 40-100
-- OEB kan positief of negatief zijn, meestal tussen -50 en +50
-- SW is meestal een getal tussen 1.0 en 4.0`;
-
-    const userPrompt = `Analyseer dit kuilanalyse rapport en extraheer de voederwaarden.
-
-Geef je antwoord ALLEEN als een JSON object in dit exacte formaat:
-{
-  "productName": "string",
-  "productType": "string", 
-  "vem": number,
-  "dve": number,
-  "oeb": number,
-  "dsPercent": number,
-  "sw": number,
-  "rawProtein": number of null,
-  "rawFiber": number of null,
-  "sugar": number of null,
-  "starch": number of null
-}
-
-Converteer DS% van g/kg naar percentage als nodig (bijv. 410 g/kg -> 41).
-Als een waarde niet gevonden kan worden, gebruik dan een realistische schatting gebaseerd op het type product.`;
-
-    console.log("[pdfParser] Calling LLM with base64 PDF data");
-    
-    // Ensure base64 data doesn't have data URL prefix
-    let cleanBase64 = pdfBase64;
-    if (cleanBase64.includes(',')) {
-      cleanBase64 = cleanBase64.split(',')[1];
+    // Strip data URL prefix if present
+    let base64Data = pdfBase64;
+    if (base64Data.includes(',')) {
+      base64Data = base64Data.split(',')[1];
     }
     
-    // Create data URL for the PDF
-    const pdfDataUrl = `data:application/pdf;base64,${cleanBase64}`;
+    // Create temp directory
+    const tempDir = join(tmpdir(), `pdf-parse-${Date.now()}`);
+    mkdirSync(tempDir, { recursive: true });
     
-    const response = await invokeLLM({
-      messages: [
-        { role: "system", content: systemPrompt },
-        { 
-          role: "user", 
-          content: [
-            { type: "text", text: userPrompt },
-            { 
-              type: "image_url", 
-              image_url: { 
-                url: pdfDataUrl,
-                detail: "high"
-              } 
-            }
-          ]
-        }
-      ]
+    // Save PDF to temp file
+    tempPdfPath = join(tempDir, 'input.pdf');
+    const pdfBuffer = Buffer.from(base64Data, 'base64');
+    writeFileSync(tempPdfPath, pdfBuffer);
+    
+    // Convert PDF to images using pdf2pic
+    const converter = fromPath(tempPdfPath, {
+      density: 200,
+      saveFilename: "page",
+      savePath: tempDir,
+      format: "png",
+      width: 2000,
+      height: 2800
     });
     
-    console.log("[pdfParser] LLM response received:", JSON.stringify(response).substring(0, 500));
-
-    const content = response.choices[0]?.message?.content;
-    if (!content || typeof content !== "string") {
-      return {
-        success: false,
-        error: "Geen geldige response van LLM ontvangen"
-      };
+    // Convert all pages (assuming max 5 pages for lab reports)
+    const imagePromises = [];
+    for (let i = 1; i <= 5; i++) {
+      imagePromises.push(
+        converter(i, { responseType: "base64" })
+          .catch(() => null) // Ignore errors for pages that don't exist
+      );
     }
-
-    try {
-      // Strip markdown code blocks if present (```json...```)
-      let jsonContent = content.trim();
-      if (jsonContent.startsWith('```')) {
-        // Remove opening code block (```json or ```)
-        jsonContent = jsonContent.replace(/^```(?:json)?\s*\n?/, '');
-        // Remove closing code block
-        jsonContent = jsonContent.replace(/\n?```\s*$/, '');
-      }
-      
-      const data = JSON.parse(jsonContent) as ParsedFeedData;
-      
-      // Validate the parsed data
-      if (!data.productName || typeof data.vem !== "number" || typeof data.dve !== "number") {
-        return {
-          success: false,
-          error: "Onvolledige data geëxtraheerd uit het rapport",
-          rawResponse: content
-        };
-      }
-
-      // Normalize DS% if it was given in g/kg
-      if (data.dsPercent > 100) {
-        data.dsPercent = data.dsPercent / 10;
-      }
-
-      return {
-        success: true,
-        data,
-        rawResponse: content
-      };
-    } catch (parseError) {
-      return {
-        success: false,
-        error: "Kon de LLM response niet als JSON parsen",
-        rawResponse: content
-      };
+    
+    const results = await Promise.all(imagePromises);
+    const imageBase64s = results
+      .filter(r => r !== null && r.base64)
+      .map(r => r!.base64!);
+    
+    if (imageBase64s.length === 0) {
+      throw new Error("Kon geen pagina's uit PDF extraheren");
     }
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Onbekende fout bij het parsen van het rapport"
-    };
+    
+    // Prepare image content for OpenAI
+    const imageContents = imageBase64s.map(base64 => ({
+      type: "image_url" as const,
+      image_url: {
+        url: `data:image/png;base64,${base64}`,
+        detail: "high" as const
+      }
+    }));
+    
+    // Call OpenAI Vision API
+    const response = await llm.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: `Je bent een expert in het analyseren van Nederlandse laboratoriumrapporten voor ruwvoer (gras en maïs kuilvoer).
+
+Analyseer dit laboratoriumrapport en extraheer de volgende informatie:
+
+1. **Voersoort**: Graslandkuil, Maïskuil, of andere
+2. **Voedingswaarden** (per kg DS):
+   - DS% (Droge Stof percentage)
+   - VEM (Voedereenheid Melk)
+   - DVE (Darm Verteerbaar Eiwit, in g/kg)
+   - OEB (Onbestendige Eiwit Balans, in g/kg)
+   - SW (Structuurwaarde)
+   - Ruw Eiwit (RE, in g/kg)
+   - Ruwe Celstof (RC, in g/kg)
+   - Zetmeel (in g/kg, vooral voor maïs)
+
+3. **Monster informatie**:
+   - Monsternummer
+   - Datum van analyse
+   - Perceelnummer of locatie (indien vermeld)
+
+Geef het resultaat in JSON formaat:
+{
+  "feedType": "Graslandkuil" of "Maïskuil",
+  "sampleNumber": "...",
+  "analysisDate": "YYYY-MM-DD",
+  "location": "...",
+  "values": {
+    "dsPercent": 45.2,
+    "vem": 920,
+    "dve": 85,
+    "oeb": 45,
+    "sw": 1.2,
+    "re": 145,
+    "rc": 220,
+    "starch": 0
   }
 }
 
-// Legacy function for URL-based parsing (kept for backward compatibility)
-export async function uploadPdfForProcessing(
-  pdfBuffer: Buffer,
-  fileName: string
-): Promise<string> {
-  // Convert buffer to base64
-  return pdfBuffer.toString('base64');
+Als een waarde niet gevonden kan worden, gebruik dan null.`
+            },
+            ...imageContents
+          ]
+        }
+      ],
+      max_tokens: 2000,
+      temperature: 0.1
+    });
+    
+    const content = response.choices[0]?.message?.content;
+    if (!content) {
+      throw new Error("Geen response van AI model");
+    }
+    
+    // Extract JSON from response
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error("Kon geen JSON vinden in AI response");
+    }
+    
+    const parsed = JSON.parse(jsonMatch[0]);
+    
+    return {
+      success: true,
+      data: parsed
+    };
+    
+  } catch (error) {
+    console.error("PDF parsing error:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Onbekende fout bij PDF verwerking"
+    };
+  } finally {
+    // Cleanup temp files
+    if (tempPdfPath) {
+      try {
+        unlinkSync(tempPdfPath);
+      } catch (e) {
+        // Ignore cleanup errors
+      }
+    }
+    for (const imagePath of tempImagePaths) {
+      try {
+        unlinkSync(imagePath);
+      } catch (e) {
+        // Ignore cleanup errors
+      }
+    }
+  }
 }

@@ -761,29 +761,70 @@ export default function AuditView() {
           <SectionHeader id="formulas" title="CVB 2025 Berekeningsformules" icon="📐" />
           {expandedSections.has('formulas') && (
             <div className="p-6 space-y-4">
-              {Object.entries(CVB_FORMULAS).map(([key, formula]) => (
-                <div key={key} className="bg-slate-700/50 rounded-lg p-4">
-                  <h4 className="font-bold text-white mb-2">{formula.name}</h4>
-                  <div className="bg-slate-900 rounded p-3 mb-2">
-                    <code className="text-emerald-400 font-mono">{formula.formula}</code>
-                  </div>
-                  <p className="text-sm text-slate-300">{formula.description}</p>
-                  {formula.example && (
-                    <p className="text-xs text-slate-400 mt-2 italic">Voorbeeld: {formula.example}</p>
-                  )}
-                  {formula.subFormulas && (
-                    <div className="mt-2 space-y-1">
-                      {formula.subFormulas.map((sub, i) => (
-                        <code key={i} className="block text-xs text-amber-400 font-mono">{sub}</code>
-                      ))}
+              {Object.entries(CVB_FORMULAS).map(([key, formula]) => {
+                // Get example group for calculations (first lactating group)
+                const exampleGroup = groupRequirements.find(g => g.lifeStage === 'lactating');
+                let calculationExample = null;
+                
+                if (exampleGroup) {
+                  const weight = exampleGroup.avgWeightKg;
+                  const milk = exampleGroup.avgMilkYieldKg;
+                  const fat = exampleGroup.avgFatPercent;
+                  const protein = exampleGroup.avgProteinPercent;
+                  
+                  // Calculate based on formula type
+                  if (key === 'vem_maintenance') {
+                    const result = 53.0 * Math.pow(weight, 0.75);
+                    calculationExample = `LG = ${weight} kg → VEM_onderhoud = 53.0 × ${weight}^0.75 = ${Math.round(result)} VEM/dag`;
+                  } else if (key === 'vem_production') {
+                    const result = milk * 442;
+                    calculationExample = `Melk = ${milk} kg → VEM_productie = ${milk} × 442 = ${Math.round(result)} VEM/dag`;
+                  } else if (key === 'fpcm') {
+                    const result = milk * (0.337 + 0.116 * fat + 0.06 * protein);
+                    calculationExample = `Melk = ${milk} kg, Vet = ${fat}%, Eiwit = ${protein}% → FPCM = ${milk} × (0.337 + 0.116×${fat} + 0.06×${protein}) = ${result.toFixed(1)} kg`;
+                  } else if (key === 'dve_requirement') {
+                    const dveMaint = 54 * 0.1 * weight;
+                    const fpcm = milk * (0.337 + 0.116 * fat + 0.06 * protein);
+                    const eiwitOpbrengst = milk * protein * 1000;
+                    const dveProd = 1.396 * eiwitOpbrengst + 0.000195 * Math.pow(eiwitOpbrengst, 2);
+                    calculationExample = `DVE_onderhoud = 54 × 0.1 × ${weight} = ${Math.round(dveMaint)}g | DVE_productie = ${Math.round(dveProd)}g | Totaal = ${Math.round(dveMaint + dveProd)}g`;
+                  } else if (key === 'ds_intake') {
+                    const fpcm = milk * (0.337 + 0.116 * fat + 0.06 * protein);
+                    const result = 0.025 * weight + 0.1 * fpcm;
+                    calculationExample = `LG = ${weight} kg, FPCM = ${fpcm.toFixed(1)} kg → DS_opname = 0.025×${weight} + 0.1×${fpcm.toFixed(1)} = ${result.toFixed(1)} kg DS/dag`;
+                  }
+                }
+                
+                return (
+                  <div key={key} className="bg-slate-700/50 rounded-lg p-4">
+                    <h4 className="font-bold text-white mb-2">{formula.name}</h4>
+                    <div className="bg-slate-900 rounded p-3 mb-2">
+                      <code className="text-emerald-400 font-mono">{formula.formula}</code>
                     </div>
-                  )}
-                  {formula.note && (
-                    <p className="text-xs text-amber-300 mt-2">⚠️ {formula.note}</p>
-                  )}
-                  <div className="text-xs text-slate-500 mt-2">Bron: {formula.source}</div>
-                </div>
-              ))}
+                    <p className="text-sm text-slate-300">{formula.description}</p>
+                    {formula.example && (
+                      <p className="text-xs text-slate-400 mt-2 italic">Voorbeeld: {formula.example}</p>
+                    )}
+                    {calculationExample && exampleGroup && (
+                      <div className="mt-3 bg-blue-900/30 border border-blue-600 rounded-lg p-3">
+                        <div className="text-xs text-blue-300 font-semibold mb-1">💡 Berekening voor {exampleGroup.name}:</div>
+                        <code className="text-sm text-blue-200 font-mono">{calculationExample}</code>
+                      </div>
+                    )}
+                    {formula.subFormulas && (
+                      <div className="mt-2 space-y-1">
+                        {formula.subFormulas.map((sub, i) => (
+                          <code key={i} className="block text-xs text-amber-400 font-mono">{sub}</code>
+                        ))}
+                      </div>
+                    )}
+                    {formula.note && (
+                      <p className="text-xs text-amber-300 mt-2">⚠️ {formula.note}</p>
+                    )}
+                    <div className="text-xs text-slate-500 mt-2">Bron: {formula.source}</div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>

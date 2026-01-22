@@ -606,22 +606,7 @@ export default function Home() {
           <div className="grid lg:grid-cols-[1fr,400px] gap-6">
             {/* Left Column: Scrollable sections */}
             <div className="space-y-8">
-                      {/* Group Selector - Choose which herd group to calculate for */}
-              <GroupSelector
-                selectedGroupId={selectedGroup?.id || null}
-                onGroupSelect={(group) => {
-                  setSelectedGroup(group);
-                  // Auto-populate MPR data from group if available
-                  if (group && group.lifeStage === 'lactating') {
-                    setMprData({
-                      milkYieldKg: group.avgMilkYieldKg,
-                      fatPercent: group.avgFatPercent,
-                      proteinPercent: group.avgProteinPercent,
-                    });
-                  }
-                }}
-              />
-              
+
                       {/* SECTION 1: Behoefte (MPR + Profiel) */}
               <div ref={behoefteRef} id="behoefte" className="scroll-mt-24">
                 <BehoefteCard

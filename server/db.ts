@@ -1507,20 +1507,30 @@ export interface MprCowRecord {
 export async function getMprSessions(farmId: number): Promise<{ mpr_date: string; cow_count: number; active_count: number; dry_count: number }[]> {
   const supabase = getSupabase();
   try {
-    const { data, error } = await supabase
-      .from('mpr_cow_records')
-      .select('mpr_date, status, kg_melk_dag')
-      .eq('farm_id', farmId)
-      .order('mpr_date', { ascending: false });
-
-    if (error) {
-      console.error("[Database] Failed to get MPR sessions:", error);
-      return [];
+    // Paginate to handle >1000 records
+    let allData: any[] = [];
+    let offset = 0;
+    const pageSize = 1000;
+    while (true) {
+      const { data: page, error: pageError } = await supabase
+        .from('mpr_cow_records')
+        .select('mpr_date, status, kg_melk_dag')
+        .eq('farm_id', farmId)
+        .order('mpr_date', { ascending: false })
+        .range(offset, offset + pageSize - 1);
+      if (pageError) {
+        console.error("[Database] Failed to get MPR sessions page:", pageError);
+        break;
+      }
+      if (!page || page.length === 0) break;
+      allData = allData.concat(page);
+      if (page.length < pageSize) break;
+      offset += pageSize;
     }
 
     // Group by date
     const sessions: Record<string, { total: number; active: number; dry: number }> = {};
-    for (const r of (data || [])) {
+    for (const r of allData) {
       if (!sessions[r.mpr_date]) sessions[r.mpr_date] = { total: 0, active: 0, dry: 0 };
       sessions[r.mpr_date].total++;
       if (r.status === 'drg' || r.status === 'onm') {
@@ -1594,11 +1604,28 @@ export async function getMprCowHistory(farmId: number, diernr: number): Promise<
 export async function getMprHerdSummary(farmId: number): Promise<any[]> {
   const supabase = getSupabase();
   try {
-    const { data, error } = await supabase
-      .from('mpr_cow_records')
-      .select('*')
-      .eq('farm_id', farmId)
-      .order('mpr_date', { ascending: true });
+    // Fetch all records with pagination (Supabase default limit is 1000)
+    let allData: MprCowRecord[] = [];
+    let offset = 0;
+    const pageSize = 1000;
+    while (true) {
+      const { data: page, error: pageError } = await supabase
+        .from('mpr_cow_records')
+        .select('*')
+        .eq('farm_id', farmId)
+        .order('mpr_date', { ascending: true })
+        .range(offset, offset + pageSize - 1);
+      if (pageError) {
+        console.error("[Database] Failed to get herd summary page:", pageError);
+        break;
+      }
+      if (!page || page.length === 0) break;
+      allData = allData.concat(page);
+      if (page.length < pageSize) break;
+      offset += pageSize;
+    }
+    const data = allData;
+    const error = null;
 
     if (error) {
       console.error("[Database] Failed to get herd summary:", error);

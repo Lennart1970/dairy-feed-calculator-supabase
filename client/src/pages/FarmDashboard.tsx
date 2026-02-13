@@ -449,7 +449,18 @@ export default function FarmDashboard() {
                 <span className="text-5xl">🌾</span>
                 <div>
                   <h3 className="text-xl font-bold text-gray-800">Areaal Overzicht</h3>
-                  <p className="text-gray-600 text-sm font-medium">Bodem- en kuilanalyses</p>
+                  <p className="text-gray-600 text-sm font-medium">Bodemanalyses percelen</p>
+                </div>
+              </div>
+            </a>
+          </Link>
+          <Link href="/kuilen">
+            <a className="bg-green-50 rounded-xl shadow-lg p-6 hover:bg-green-100 transition-all transform hover:scale-105 border-2 border-green-300">
+              <div className="flex items-center gap-4">
+                <span className="text-5xl">🌾</span>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-800">Kuilanalyses</h3>
+                  <p className="text-gray-600 text-sm font-medium">Graskuil & maïskuil kwaliteit</p>
                 </div>
               </div>
             </a>

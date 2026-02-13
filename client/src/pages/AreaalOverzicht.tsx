@@ -1,13 +1,11 @@
 import { trpc } from "../lib/trpc";
 import { Link } from "wouter";
-import { ArrowLeft, TrendingUp, TrendingDown, AlertTriangle, CheckCircle } from "lucide-react";
+import { ArrowLeft, AlertTriangle, CheckCircle } from "lucide-react";
 
 export default function AreaalOverzicht() {
-  const { data: summary, isLoading } = trpc.areaal.summary.useQuery(
+  const { data: soil, isLoading } = trpc.areaal.soil.useQuery(
     { farmId: 1 },
-    {
-      retry: 1,
-    }
+    { retry: 1 }
   );
 
   if (isLoading) {
@@ -27,38 +25,21 @@ export default function AreaalOverzicht() {
     );
   }
 
-  if (!summary) {
+  if (!soil || soil.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50 p-6">
         <div className="max-w-7xl mx-auto">
-          <p className="text-gray-500">Geen data beschikbaar</p>
+          <p className="text-gray-500">Geen bodemdata beschikbaar</p>
         </div>
       </div>
     );
   }
 
-  const { soil, silage } = summary;
-
-  // Helper function to get status color
-  const getStatusColor = (value: number, min: number, max: number, invert = false) => {
-    const isGood = invert ? (value < min || value > max) : (value >= min && value <= max);
-    return isGood ? 'text-green-600' : 'text-red-600';
-  };
-
-  const getStatusBadge = (value: number, min: number, max: number, invert = false) => {
-    const isGood = invert ? (value < min || value > max) : (value >= min && value <= max);
-    return isGood ? (
-      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-        <CheckCircle className="w-3 h-3 mr-1" />
-        Goed
-      </span>
-    ) : (
-      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-        <AlertTriangle className="w-3 h-3 mr-1" />
-        Aandacht
-      </span>
-    );
-  };
+  const soilCount = soil.length;
+  const avgPH = soil.reduce((sum: number, s: any) => sum + (s.ph || 0), 0) / soilCount;
+  const avgNLV = soil.reduce((sum: number, s: any) => sum + (s.nlv_kg_n_per_ha || 0), 0) / soilCount;
+  const lowKCount = soil.filter((s: any) => (s.k_plantbeschikbaar_kg_per_ha || 0) < 105).length;
+  const highPCount = soil.filter((s: any) => (s.p_bodemvoorraad_kg_per_ha || 0) > 500).length;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -74,7 +55,7 @@ export default function AreaalOverzicht() {
               </Link>
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">Areaal Overzicht</h1>
-                <p className="text-sm text-gray-500 mt-1">Bodem- en kuilanalyses Niehof-Velthuis</p>
+                <p className="text-sm text-gray-500 mt-1">Bodemanalyses percelen - Niehof-Velthuis</p>
               </div>
             </div>
           </div>
@@ -86,28 +67,28 @@ export default function AreaalOverzicht() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <div className="bg-white rounded-lg shadow p-6">
             <div className="text-sm font-medium text-gray-500 mb-2">Percelen</div>
-            <div className="text-3xl font-bold text-gray-900">{soil.count}</div>
+            <div className="text-3xl font-bold text-gray-900">{soilCount}</div>
             <div className="text-xs text-gray-500 mt-1">Bodemanalyses</div>
           </div>
 
           <div className="bg-white rounded-lg shadow p-6">
             <div className="text-sm font-medium text-gray-500 mb-2">Gem. pH</div>
-            <div className={`text-3xl font-bold ${getStatusColor(soil.avgPH, 5.4, 6.0)}`}>
-              {soil.avgPH.toFixed(1)}
+            <div className={`text-3xl font-bold ${avgPH >= 5.4 && avgPH <= 6.0 ? 'text-green-600' : 'text-red-600'}`}>
+              {avgPH.toFixed(1)}
             </div>
             <div className="text-xs text-gray-500 mt-1">Streef: 5,4-6,0</div>
           </div>
 
           <div className="bg-white rounded-lg shadow p-6">
             <div className="text-sm font-medium text-gray-500 mb-2">Gem. NLV</div>
-            <div className="text-3xl font-bold text-gray-900">{soil.avgNLV}</div>
+            <div className="text-3xl font-bold text-gray-900">{Math.round(avgNLV)}</div>
             <div className="text-xs text-gray-500 mt-1">kg N/ha per jaar</div>
           </div>
 
           <div className="bg-white rounded-lg shadow p-6">
             <div className="text-sm font-medium text-gray-500 mb-2">Aandachtspunten</div>
-            <div className="text-3xl font-bold text-red-600">{soil.lowKCount + soil.highPCount}</div>
-            <div className="text-xs text-gray-500 mt-1">{soil.lowKCount} K-laag, {soil.highPCount} P-hoog</div>
+            <div className="text-3xl font-bold text-red-600">{lowKCount + highPCount}</div>
+            <div className="text-xs text-gray-500 mt-1">{lowKCount} K-laag, {highPCount} P-hoog</div>
           </div>
         </div>
 
@@ -133,7 +114,7 @@ export default function AreaalOverzicht() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {soil.percelen.map((perceel: any) => {
+                {soil.map((perceel: any) => {
                   const kLow = (perceel.k_plantbeschikbaar_kg_per_ha || 0) < 105;
                   const pHigh = (perceel.p_bodemvoorraad_kg_per_ha || 0) > 500;
                   const pHLow = (perceel.ph || 0) < 5.4;
@@ -185,83 +166,6 @@ export default function AreaalOverzicht() {
           </div>
         </div>
 
-        {/* Silage Analyses */}
-        <div className="bg-white rounded-lg shadow">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900">Kuilanalyses 2025</h2>
-            <p className="text-sm text-gray-500 mt-1">{silage.graskuilCount} graskuilen, {silage.maiskuilCount} maïskuilen</p>
-          </div>
-
-          <div className="p-6 space-y-6">
-            {/* Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-green-50 rounded-lg p-4">
-                <div className="text-sm font-medium text-green-900 mb-2">Graskuil</div>
-                <div className="text-2xl font-bold text-green-900">{silage.avgVEMGras} VEM</div>
-                <div className="text-xs text-green-700 mt-1">Gemiddeld per kg ds</div>
-              </div>
-
-              <div className="bg-yellow-50 rounded-lg p-4">
-                <div className="text-sm font-medium text-yellow-900 mb-2">Maïskuil</div>
-                <div className="text-2xl font-bold text-yellow-900">{silage.avgVEMMais} VEM</div>
-                <div className="text-xs text-yellow-700 mt-1">Gemiddeld per kg ds</div>
-              </div>
-            </div>
-
-            {/* Silage Table */}
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kuil</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Datum</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">DS (g/kg)</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">VEM</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">DVE</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">OEB</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">RE</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {silage.kuilen.map((kuil: any) => (
-                    <tr key={kuil.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {kuil.kuil_name}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                          kuil.type === 'Graskuil' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                        }`}>
-                          {kuil.type}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {new Date(kuil.datum_monstername).toLocaleDateString('nl-NL')}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {kuil.ds_g_per_kg || '-'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {kuil.vem_per_kg_ds || '-'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {kuil.dve_g_per_kg_ds || '-'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {kuil.oeb_g_per_kg_ds || '-'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {kuil.re_g_per_kg_ds || '-'}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-
         {/* Legend */}
         <div className="bg-blue-50 rounded-lg p-6">
           <h3 className="text-sm font-semibold text-blue-900 mb-3">Legenda</h3>
@@ -274,9 +178,8 @@ export default function AreaalOverzicht() {
             </div>
             <div>
               <strong>P-bv</strong> = Fosfor bodemvoorraad (kg P/ha, streef: 225-290)<br/>
-              <strong>VEM</strong> = Voeder Eenheid Melk (per kg ds)<br/>
-              <strong>DVE</strong> = Darm Verteerbaar Eiwit (g/kg ds)<br/>
-              <strong>OEB</strong> = Onbestendig Eiwit Balans (g/kg ds)
+              <strong>Aandacht</strong> = K te laag, P te hoog, of pH te laag<br/>
+              <strong>Maïsteelt 2026</strong> = Max 3 jaar achtereen maïs toegestaan
             </div>
           </div>
         </div>

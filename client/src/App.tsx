@@ -22,6 +22,7 @@ import Report from "./pages/Report";
 import MprLeveringen from "./pages/MprLeveringen";
 import MprDieroverzicht from "./pages/MprDieroverzicht";
 import AreaalOverzicht from "./pages/AreaalOverzicht";
+import Kuilanalyses from "./pages/Kuilanalyses";
 
 function Router() {
   const [location] = useLocation();
@@ -86,6 +87,7 @@ function Router() {
       <Route path={"/mpr"} component={MprLeveringen} />
       <Route path={"/mpr-dieren"} component={MprDieroverzicht} />
       <Route path={"/areaal"} component={AreaalOverzicht} />
+      <Route path={"/kuilen"} component={Kuilanalyses} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />

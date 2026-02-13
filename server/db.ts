@@ -1462,3 +1462,180 @@ export async function getMprMonthlySummary(farmId: number): Promise<any[]> {
     return [];
   }
 }
+
+// ============================================
+// MPR Cow Records (Dieroverzicht - Individual Cow Lab Data)
+// ============================================
+
+export interface MprCowRecord {
+  id: number;
+  farm_id: number;
+  mpr_date: string;
+  diernr: number;
+  levensnummer: string | null;
+  naam: string | null;
+  leeftijd: number | null;
+  kg_melk_dag: number | null;
+  vet_pct: number | null;
+  eiw_pct: number | null;
+  lac_pct: number | null;
+  ureum: number | null;
+  kgve: number | null;
+  celgetal: number | null;
+  cel_opm: string | null;
+  status: string | null;
+  lactatienr: number | null;
+  kalfdatum: string | null;
+  dgn_305: number | null;
+  kg_melk_305: number | null;
+  vet_pct_305: number | null;
+  eiw_pct_305: number | null;
+  kg_vet_305: number | null;
+  kg_eiw_305: number | null;
+  lw: number | null;
+  lifetime_lft_afk: number | null;
+  lifetime_lact_nr: number | null;
+  lifetime_kg_melk: number | null;
+  lifetime_vet_pct: number | null;
+  lifetime_eiw_pct: number | null;
+  lifetime_kg_vet: number | null;
+  lifetime_kg_eiw: number | null;
+  created_at: string;
+}
+
+// Get all MPR sessions (unique dates) for a farm
+export async function getMprSessions(farmId: number): Promise<{ mpr_date: string; cow_count: number; active_count: number; dry_count: number }[]> {
+  const supabase = getSupabase();
+  try {
+    const { data, error } = await supabase
+      .from('mpr_cow_records')
+      .select('mpr_date, status, kg_melk_dag')
+      .eq('farm_id', farmId)
+      .order('mpr_date', { ascending: false });
+
+    if (error) {
+      console.error("[Database] Failed to get MPR sessions:", error);
+      return [];
+    }
+
+    // Group by date
+    const sessions: Record<string, { total: number; active: number; dry: number }> = {};
+    for (const r of (data || [])) {
+      if (!sessions[r.mpr_date]) sessions[r.mpr_date] = { total: 0, active: 0, dry: 0 };
+      sessions[r.mpr_date].total++;
+      if (r.status === 'drg' || r.status === 'onm') {
+        sessions[r.mpr_date].dry++;
+      } else if (r.kg_melk_dag !== null) {
+        sessions[r.mpr_date].active++;
+      }
+    }
+
+    return Object.entries(sessions)
+      .map(([date, counts]) => ({
+        mpr_date: date,
+        cow_count: counts.total,
+        active_count: counts.active,
+        dry_count: counts.dry,
+      }))
+      .sort((a, b) => b.mpr_date.localeCompare(a.mpr_date));
+  } catch (error) {
+    console.error("[Database] Failed to get MPR sessions:", error);
+    return [];
+  }
+}
+
+// Get all cow records for a specific MPR session
+export async function getMprCowRecords(farmId: number, mprDate: string): Promise<MprCowRecord[]> {
+  const supabase = getSupabase();
+  try {
+    const { data, error } = await supabase
+      .from('mpr_cow_records')
+      .select('*')
+      .eq('farm_id', farmId)
+      .eq('mpr_date', mprDate)
+      .order('diernr', { ascending: true });
+
+    if (error) {
+      console.error("[Database] Failed to get MPR cow records:", error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error("[Database] Failed to get MPR cow records:", error);
+    return [];
+  }
+}
+
+// Get history for a specific cow across all sessions
+export async function getMprCowHistory(farmId: number, diernr: number): Promise<MprCowRecord[]> {
+  const supabase = getSupabase();
+  try {
+    const { data, error } = await supabase
+      .from('mpr_cow_records')
+      .select('*')
+      .eq('farm_id', farmId)
+      .eq('diernr', diernr)
+      .order('mpr_date', { ascending: true });
+
+    if (error) {
+      console.error("[Database] Failed to get cow history:", error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error("[Database] Failed to get cow history:", error);
+    return [];
+  }
+}
+
+// Get herd summary statistics per session
+export async function getMprHerdSummary(farmId: number): Promise<any[]> {
+  const supabase = getSupabase();
+  try {
+    const { data, error } = await supabase
+      .from('mpr_cow_records')
+      .select('*')
+      .eq('farm_id', farmId)
+      .order('mpr_date', { ascending: true });
+
+    if (error) {
+      console.error("[Database] Failed to get herd summary:", error);
+      return [];
+    }
+
+    // Group by date and calculate averages
+    const sessions: Record<string, MprCowRecord[]> = {};
+    for (const r of (data || [])) {
+      if (!sessions[r.mpr_date]) sessions[r.mpr_date] = [];
+      sessions[r.mpr_date].push(r);
+    }
+
+    return Object.entries(sessions).map(([date, cows]) => {
+      const active = cows.filter(c => c.kg_melk_dag !== null && c.status !== 'drg' && c.status !== 'onm');
+      const dry = cows.filter(c => c.status === 'drg' || c.status === 'onm');
+      
+      const avg = (arr: number[]) => arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
+      
+      return {
+        mpr_date: date,
+        total_cows: cows.length,
+        active_cows: active.length,
+        dry_cows: dry.length,
+        avg_kg_melk: avg(active.filter(c => c.kg_melk_dag).map(c => Number(c.kg_melk_dag))),
+        avg_vet_pct: avg(active.filter(c => c.vet_pct).map(c => Number(c.vet_pct))),
+        avg_eiw_pct: avg(active.filter(c => c.eiw_pct).map(c => Number(c.eiw_pct))),
+        avg_lac_pct: avg(active.filter(c => c.lac_pct).map(c => Number(c.lac_pct))),
+        avg_ureum: avg(active.filter(c => c.ureum).map(c => Number(c.ureum))),
+        avg_celgetal: avg(active.filter(c => c.celgetal).map(c => Number(c.celgetal))),
+        avg_lw: avg(active.filter(c => c.lw).map(c => Number(c.lw))),
+        high_cel_count: active.filter(c => c.celgetal && Number(c.celgetal) > 250).length,
+        vers_count: active.filter(c => c.status === 'vers').length,
+      };
+    }).sort((a, b) => a.mpr_date.localeCompare(b.mpr_date));
+  } catch (error) {
+    console.error("[Database] Failed to get herd summary:", error);
+    return [];
+  }
+}

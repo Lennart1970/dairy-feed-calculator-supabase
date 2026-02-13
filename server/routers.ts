@@ -16,7 +16,9 @@ import {
   // Lab Results
   saveLabResultAsFeed, getLabResultsForFarm, getLabResultById, deleteLabResult,
   // MPR Deliveries
-  getMprDeliveries, getMprDeliveriesByDateRange, getMprMonthlySummary
+  getMprDeliveries, getMprDeliveriesByDateRange, getMprMonthlySummary,
+  // MPR Cow Records (Dieroverzicht)
+  getMprSessions, getMprCowRecords, getMprCowHistory, getMprHerdSummary
 } from "./db";
 import { parseLabReportPdf } from "./pdfParser";
 import { z } from "zod";
@@ -864,6 +866,39 @@ export const appRouter = router({
       .input(z.object({ farmId: z.number().default(1) }))
       .query(async ({ input }) => {
         return await getMprMonthlySummary(input.farmId);
+      }),
+  }),
+
+  // MPR Cow Records (Dieroverzicht) Router
+  mprCows: router({
+    sessions: publicProcedure
+      .input(z.object({ farmId: z.number().default(1) }))
+      .query(async ({ input }) => {
+        return await getMprSessions(input.farmId);
+      }),
+
+    bySession: publicProcedure
+      .input(z.object({
+        farmId: z.number().default(1),
+        mprDate: z.string(),
+      }))
+      .query(async ({ input }) => {
+        return await getMprCowRecords(input.farmId, input.mprDate);
+      }),
+
+    cowHistory: publicProcedure
+      .input(z.object({
+        farmId: z.number().default(1),
+        diernr: z.number(),
+      }))
+      .query(async ({ input }) => {
+        return await getMprCowHistory(input.farmId, input.diernr);
+      }),
+
+    herdSummary: publicProcedure
+      .input(z.object({ farmId: z.number().default(1) }))
+      .query(async ({ input }) => {
+        return await getMprHerdSummary(input.farmId);
       }),
   }),
 });

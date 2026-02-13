@@ -18,6 +18,7 @@ import Basisrantsoen from "./pages/Basisrantsoen";
 import RationAssignment from "./pages/RationAssignment";
 import LabRapporten from "./pages/LabRapporten";
 import AuditView from "./pages/AuditView";
+import Report from "./pages/Report";
 
 function Router() {
   const [location] = useLocation();
@@ -78,6 +79,7 @@ function Router() {
       <Route path={"/basisrantsoen"} component={Basisrantsoen} />
       <Route path={"/rantsoen-toewijzing"} component={RationAssignment} />
       <Route path={"/audit"} component={AuditView} />
+      <Route path={"/rapport"} component={Report} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />

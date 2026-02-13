@@ -21,6 +21,7 @@ import AuditView from "./pages/AuditView";
 import Report from "./pages/Report";
 import MprLeveringen from "./pages/MprLeveringen";
 import MprDieroverzicht from "./pages/MprDieroverzicht";
+import AreaalOverzicht from "./pages/AreaalOverzicht";
 
 function Router() {
   const [location] = useLocation();
@@ -84,6 +85,7 @@ function Router() {
       <Route path={"/rapport"} component={Report} />
       <Route path={"/mpr"} component={MprLeveringen} />
       <Route path={"/mpr-dieren"} component={MprDieroverzicht} />
+      <Route path={"/areaal"} component={AreaalOverzicht} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />

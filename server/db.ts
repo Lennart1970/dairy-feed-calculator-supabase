@@ -1781,3 +1781,69 @@ export async function getComputedHerdGroups(farmId: number, mprDate?: string): P
     return { groups: [], mprDate: null, totalCows: 0 };
   }
 }
+
+
+// ============================================================================
+// AREAAL OVERZICHT - Soil & Silage Analyses
+// ============================================================================
+
+export async function getSoilAnalyses(farmId: number) {
+  const supabase = getSupabase();
+  
+  const { data, error } = await supabase
+    .from('soil_analyses')
+    .select('*')
+    .eq('farm_id', farmId)
+    .order('datum_monstername', { ascending: false });
+  
+  if (error) throw error;
+  return data;
+}
+
+export async function getSilageAnalyses(farmId: number) {
+  const supabase = getSupabase();
+  
+  const { data, error } = await supabase
+    .from('silage_analyses')
+    .select('*')
+    .eq('farm_id', farmId)
+    .order('datum_monstername', { ascending: false });
+  
+  if (error) throw error;
+  return data;
+}
+
+export async function getAreaalSummary(farmId: number) {
+  const soil = await getSoilAnalyses(farmId);
+  const silage = await getSilageAnalyses(farmId);
+  
+  // Calculate summary statistics
+  const soilCount = soil.length;
+  const avgPH = soil.reduce((sum, s) => sum + (s.ph || 0), 0) / soilCount;
+  const avgNLV = soil.reduce((sum, s) => sum + (s.nlv_kg_n_per_ha || 0), 0) / soilCount;
+  const lowKCount = soil.filter(s => (s.k_plantbeschikbaar_kg_per_ha || 0) < 105).length;
+  const highPCount = soil.filter(s => (s.p_bodemvoorraad_kg_per_ha || 0) > 500).length;
+  
+  const graskuilCount = silage.filter(s => s.type === 'Graskuil').length;
+  const maiskuilCount = silage.filter(s => s.type === 'Maiskuil').length;
+  const avgVEMGras = silage.filter(s => s.type === 'Graskuil').reduce((sum, s) => sum + (s.vem_per_kg_ds || 0), 0) / graskuilCount || 0;
+  const avgVEMMais = silage.filter(s => s.type === 'Maiskuil').reduce((sum, s) => sum + (s.vem_per_kg_ds || 0), 0) / maiskuilCount || 0;
+  
+  return {
+    soil: {
+      count: soilCount,
+      avgPH: Math.round(avgPH * 10) / 10,
+      avgNLV: Math.round(avgNLV),
+      lowKCount,
+      highPCount,
+      percelen: soil
+    },
+    silage: {
+      graskuilCount,
+      maiskuilCount,
+      avgVEMGras: Math.round(avgVEMGras),
+      avgVEMMais: Math.round(avgVEMMais),
+      kuilen: silage
+    }
+  };
+}

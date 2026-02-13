@@ -19,7 +19,9 @@ import {
   getMprDeliveries, getMprDeliveriesByDateRange, getMprMonthlySummary,
   // MPR Cow Records (Dieroverzicht)
   getMprSessions, getMprCowRecords, getMprCowHistory, getMprHerdSummary,
-  getComputedHerdGroups
+  getComputedHerdGroups,
+  // Areaal Overzicht
+  getSoilAnalyses, getSilageAnalyses, getAreaalSummary
 } from "./db";
 import { parseLabReportPdf } from "./pdfParser";
 import { z } from "zod";
@@ -909,6 +911,33 @@ export const appRouter = router({
       }))
       .query(async ({ input }) => {
         return await getComputedHerdGroups(input.farmId, input.mprDate);
+      }),
+  }),
+
+  // Areaal Overzicht Router
+  areaal: router({
+    soil: publicProcedure
+      .input(z.object({
+        farmId: z.number().default(1),
+      }))
+      .query(async ({ input }) => {
+        return await getSoilAnalyses(input.farmId);
+      }),
+
+    silage: publicProcedure
+      .input(z.object({
+        farmId: z.number().default(1),
+      }))
+      .query(async ({ input }) => {
+        return await getSilageAnalyses(input.farmId);
+      }),
+
+    summary: publicProcedure
+      .input(z.object({
+        farmId: z.number().default(1),
+      }))
+      .query(async ({ input }) => {
+        return await getAreaalSummary(input.farmId);
       }),
   }),
 });

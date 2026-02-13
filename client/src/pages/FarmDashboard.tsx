@@ -421,6 +421,17 @@ export default function FarmDashboard() {
               </div>
             </a>
           </Link>
+          <Link href="/mpr">
+            <a className="bg-indigo-50 rounded-xl shadow-lg p-6 hover:bg-indigo-100 transition-all transform hover:scale-105 border-2 border-indigo-300">
+              <div className="flex items-center gap-4">
+                <span className="text-5xl">🥛</span>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-800">MPR Leveringen</h3>
+                  <p className="text-gray-600 text-sm font-medium">Melkkwaliteit & productietrends</p>
+                </div>
+              </div>
+            </a>
+          </Link>
         </div>
 
         {/* Inventory Alerts */}

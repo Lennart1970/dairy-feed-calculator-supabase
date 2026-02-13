@@ -14,7 +14,9 @@ import {
   getBaseRations, getBaseRationById, createBaseRation, updateBaseRation, deleteBaseRation,
   setBaseRationFeeds, calculateBaseRationDensity,
   // Lab Results
-  saveLabResultAsFeed, getLabResultsForFarm, getLabResultById, deleteLabResult
+  saveLabResultAsFeed, getLabResultsForFarm, getLabResultById, deleteLabResult,
+  // MPR Deliveries
+  getMprDeliveries, getMprDeliveriesByDateRange, getMprMonthlySummary
 } from "./db";
 import { parseLabReportPdf } from "./pdfParser";
 import { z } from "zod";
@@ -797,6 +799,71 @@ export const appRouter = router({
           swPerKgDs: density.swPerKgDs,
           vwPerKgDs: density.vwPerKgDs,
         };
+      }),
+  }),
+
+  // MPR Deliveries Router
+  mpr: router({
+    list: publicProcedure
+      .input(z.object({ farmId: z.number().default(1) }))
+      .query(async ({ input }) => {
+        const deliveries = await getMprDeliveries(input.farmId);
+        return deliveries.map(d => ({
+          id: d.id,
+          farmId: d.farm_id,
+          deliveryDate: d.delivery_date,
+          deliveryTime: d.delivery_time,
+          kgMelk: parseFloat(d.kg_melk),
+          ltrMelk: parseFloat(d.ltr_melk),
+          temp: d.temp ? parseFloat(d.temp) : null,
+          vetProcent: parseFloat(d.vet_procent),
+          eiwitProcent: parseFloat(d.eiwit_procent),
+          lactoseProcent: parseFloat(d.lactose_procent),
+          ureum: d.ureum,
+          ber: d.ber,
+          vriesPunt: d.vries_punt ? parseFloat(d.vries_punt) : null,
+          zuurgraad: d.zuurgraad ? parseFloat(d.zuurgraad) : null,
+          vetEiwitRatio: d.vet_eiwit_ratio ? parseFloat(d.vet_eiwit_ratio) : null,
+          antibiotica: d.antibiotica,
+          fosfor: d.fosfor,
+          myristinezuurC14: d.myristinezuur_c14 ? parseFloat(d.myristinezuur_c14) : null,
+          palmitinezuurC16: d.palmitinezuur_c16 ? parseFloat(d.palmitinezuur_c16) : null,
+          stearinezuurC18: d.stearinezuur_c18 ? parseFloat(d.stearinezuur_c18) : null,
+          oliezuurC181: d.oliezuur_c18_1 ? parseFloat(d.oliezuur_c18_1) : null,
+          kgVet: parseFloat(d.kg_vet),
+          kgEiwit: parseFloat(d.kg_eiwit),
+        }));
+      }),
+
+    byDateRange: publicProcedure
+      .input(z.object({
+        farmId: z.number().default(1),
+        startDate: z.string(),
+        endDate: z.string(),
+      }))
+      .query(async ({ input }) => {
+        const deliveries = await getMprDeliveriesByDateRange(input.farmId, input.startDate, input.endDate);
+        return deliveries.map(d => ({
+          id: d.id,
+          farmId: d.farm_id,
+          deliveryDate: d.delivery_date,
+          deliveryTime: d.delivery_time,
+          kgMelk: parseFloat(d.kg_melk),
+          ltrMelk: parseFloat(d.ltr_melk),
+          temp: d.temp ? parseFloat(d.temp) : null,
+          vetProcent: parseFloat(d.vet_procent),
+          eiwitProcent: parseFloat(d.eiwit_procent),
+          lactoseProcent: parseFloat(d.lactose_procent),
+          ureum: d.ureum,
+          kgVet: parseFloat(d.kg_vet),
+          kgEiwit: parseFloat(d.kg_eiwit),
+        }));
+      }),
+
+    monthlySummary: publicProcedure
+      .input(z.object({ farmId: z.number().default(1) }))
+      .query(async ({ input }) => {
+        return await getMprMonthlySummary(input.farmId);
       }),
   }),
 });

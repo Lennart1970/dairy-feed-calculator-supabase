@@ -1325,3 +1325,140 @@ export async function deleteLabResult(labResultId: number): Promise<boolean> {
     return false;
   }
 }
+
+
+// ============================================
+// MPR Delivery Queries
+// ============================================
+
+export interface MprDelivery {
+  id: number;
+  farm_id: number;
+  delivery_date: string;
+  delivery_time: string;
+  kg_melk: string;
+  ltr_melk: string;
+  temp: string | null;
+  vet_procent: string;
+  eiwit_procent: string;
+  lactose_procent: string;
+  ureum: number | null;
+  ber: number | null;
+  vries_punt: string | null;
+  zuurgraad: string | null;
+  vet_eiwit_ratio: string | null;
+  antibiotica: string | null;
+  fosfor: number | null;
+  myristinezuur_c14: string | null;
+  palmitinezuur_c16: string | null;
+  stearinezuur_c18: string | null;
+  oliezuur_c18_1: string | null;
+  kg_vet: string;
+  kg_eiwit: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function getMprDeliveries(farmId: number): Promise<MprDelivery[]> {
+  const supabase = getSupabase();
+
+  try {
+    const { data, error } = await supabase
+      .from('mpr_deliveries')
+      .select('*')
+      .eq('farm_id', farmId)
+      .order('delivery_date', { ascending: false });
+
+    if (error) {
+      console.error("[Database] Failed to get MPR deliveries:", error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error("[Database] Failed to get MPR deliveries:", error);
+    return [];
+  }
+}
+
+export async function getMprDeliveriesByDateRange(
+  farmId: number, 
+  startDate: string, 
+  endDate: string
+): Promise<MprDelivery[]> {
+  const supabase = getSupabase();
+
+  try {
+    const { data, error } = await supabase
+      .from('mpr_deliveries')
+      .select('*')
+      .eq('farm_id', farmId)
+      .gte('delivery_date', startDate)
+      .lte('delivery_date', endDate)
+      .order('delivery_date', { ascending: true });
+
+    if (error) {
+      console.error("[Database] Failed to get MPR deliveries by date range:", error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error("[Database] Failed to get MPR deliveries by date range:", error);
+    return [];
+  }
+}
+
+export async function getMprMonthlySummary(farmId: number): Promise<any[]> {
+  const supabase = getSupabase();
+
+  try {
+    const { data, error } = await supabase
+      .from('mpr_deliveries')
+      .select('*')
+      .eq('farm_id', farmId)
+      .order('delivery_date', { ascending: true });
+
+    if (error) {
+      console.error("[Database] Failed to get MPR monthly summary:", error);
+      return [];
+    }
+
+    // Group by month in JavaScript
+    const months: Record<string, any[]> = {};
+    for (const d of (data || [])) {
+      const monthKey = d.delivery_date.substring(0, 7); // YYYY-MM
+      if (!months[monthKey]) months[monthKey] = [];
+      months[monthKey].push(d);
+    }
+
+    // Calculate monthly summaries
+    return Object.entries(months).map(([month, deliveries]) => {
+      const n = deliveries.length;
+      const avgKgMelk = deliveries.reduce((s, d) => s + parseFloat(d.kg_melk), 0) / n;
+      const totalKgMelk = deliveries.reduce((s, d) => s + parseFloat(d.kg_melk), 0);
+      const avgVet = deliveries.reduce((s, d) => s + parseFloat(d.vet_procent), 0) / n;
+      const avgEiwit = deliveries.reduce((s, d) => s + parseFloat(d.eiwit_procent), 0) / n;
+      const avgLactose = deliveries.reduce((s, d) => s + parseFloat(d.lactose_procent), 0) / n;
+      const avgUreum = deliveries.filter(d => d.ureum != null).reduce((s, d) => s + d.ureum, 0) / deliveries.filter(d => d.ureum != null).length;
+      const totalKgVet = deliveries.reduce((s, d) => s + parseFloat(d.kg_vet), 0);
+      const totalKgEiwit = deliveries.reduce((s, d) => s + parseFloat(d.kg_eiwit), 0);
+
+      return {
+        month,
+        deliveryCount: n,
+        avgKgMelk: Math.round(avgKgMelk),
+        totalKgMelk: Math.round(totalKgMelk),
+        avgVetProcent: Math.round(avgVet * 100) / 100,
+        avgEiwitProcent: Math.round(avgEiwit * 100) / 100,
+        avgLactoseProcent: Math.round(avgLactose * 100) / 100,
+        avgUreum: Math.round(avgUreum * 10) / 10,
+        totalKgVet: Math.round(totalKgVet * 10) / 10,
+        totalKgEiwit: Math.round(totalKgEiwit * 10) / 10,
+      };
+    }).sort((a, b) => a.month.localeCompare(b.month));
+  } catch (error) {
+    console.error("[Database] Failed to get MPR monthly summary:", error);
+    return [];
+  }
+}

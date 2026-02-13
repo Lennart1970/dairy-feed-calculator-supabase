@@ -1,16 +1,14 @@
-import { useQuery } from "@tanstack/react-query";
 import { trpc } from "../lib/trpc";
 import { Link } from "wouter";
 import { ArrowLeft, TrendingUp, TrendingDown, AlertTriangle, CheckCircle } from "lucide-react";
 
 export default function AreaalOverzicht() {
-  const { data: summary, isLoading } = useQuery({
-    queryKey: ['areaal', 'summary'],
-    queryFn: async () => {
-      const result = await trpc.areaal.summary.query({ farmId: 1 });
-      return result;
-    },
-  });
+  const { data: summary, isLoading } = trpc.areaal.summary.useQuery(
+    { farmId: 1 },
+    {
+      retry: 1,
+    }
+  );
 
   if (isLoading) {
     return (

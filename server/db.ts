@@ -1666,3 +1666,118 @@ export async function getMprHerdSummary(farmId: number): Promise<any[]> {
     return [];
   }
 }
+
+
+// Compute herd groups automatically from MPR cow records for a given session
+// Groups cows by DIM (Days In Milk) into: Droogstaand, Hoogproductief, Midproductief, Laagproductief
+export async function getComputedHerdGroups(farmId: number, mprDate?: string): Promise<any> {
+  const supabase = getSupabase();
+  try {
+    // If no date specified, get the most recent session
+    let targetDate = mprDate;
+    if (!targetDate) {
+      const sessions = await getMprSessions(farmId);
+      if (sessions.length === 0) return { groups: [], mprDate: null, totalCows: 0 };
+      targetDate = sessions[0].mpr_date; // Most recent
+    }
+
+    // Fetch all cow records for this session
+    const cows = await getMprCowRecords(farmId, targetDate);
+    if (!cows || cows.length === 0) return { groups: [], mprDate: targetDate, totalCows: 0 };
+
+    // Parse MPR date for DIM calculation
+    const mprDateObj = new Date(targetDate);
+
+    // Helper: calculate DIM from kalfdatum
+    function calcDIM(kalfdatum: string | null): number | null {
+      if (!kalfdatum) return null;
+      try {
+        const parts = kalfdatum.split('/');
+        if (parts.length !== 3) return null;
+        const day = parseInt(parts[0]);
+        const month = parseInt(parts[1]);
+        let year = parseInt(parts[2]);
+        if (year < 100) year += 2000;
+        const kalfDate = new Date(year, month - 1, day);
+        const dim = Math.floor((mprDateObj.getTime() - kalfDate.getTime()) / (1000 * 60 * 60 * 24));
+        return dim >= 0 ? dim : null;
+      } catch {
+        return null;
+      }
+    }
+
+    // Helper: safe average
+    const avg = (arr: number[]) => arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
+
+    // Categorize cows
+    const dryCows = cows.filter(c => c.status === 'drg' || c.status === 'onm');
+    const activeCows = cows.filter(c => c.kg_melk_dag !== null && c.status !== 'drg' && c.status !== 'onm');
+
+    // Calculate DIM for active cows
+    const cowsWithDIM = activeCows.map(c => ({
+      ...c,
+      dim: calcDIM(c.kalfdatum),
+    }));
+
+    // Group by DIM ranges
+    const hoogCows = cowsWithDIM.filter(c => c.dim !== null && c.dim < 120);
+    const middenCows = cowsWithDIM.filter(c => c.dim !== null && c.dim >= 120 && c.dim < 220);
+    const laagCows = cowsWithDIM.filter(c => c.dim !== null && c.dim >= 220);
+    const noDimCows = cowsWithDIM.filter(c => c.dim === null);
+
+    // Build group stats
+    function buildGroupStats(name: string, groupCows: (MprCowRecord & { dim: number | null })[], lifeStage: string, defaultWeight: number) {
+      const count = groupCows.length;
+      if (count === 0) return { name, lifeStage, cowCount: 0, avgWeightKg: defaultWeight, avgMilkYieldKg: 0, avgFatPercent: 0, avgProteinPercent: 0, avgDaysInMilk: 0, avgCelgetal: null, avgUreum: null, avgParity: null, dimRange: null, cows: [] };
+
+      const melkVals = groupCows.filter(c => c.kg_melk_dag !== null).map(c => Number(c.kg_melk_dag));
+      const vetVals = groupCows.filter(c => c.vet_pct !== null).map(c => Number(c.vet_pct));
+      const eiwVals = groupCows.filter(c => c.eiw_pct !== null).map(c => Number(c.eiw_pct));
+      const celVals = groupCows.filter(c => c.celgetal !== null).map(c => Number(c.celgetal));
+      const ureumVals = groupCows.filter(c => c.ureum !== null).map(c => Number(c.ureum));
+      const dimVals = groupCows.filter(c => c.dim !== null).map(c => c.dim as number);
+      const lactVals = groupCows.filter(c => c.lactatienr !== null && c.lactatienr < 20).map(c => Number(c.lactatienr));
+
+      return {
+        name,
+        lifeStage,
+        cowCount: count,
+        avgWeightKg: defaultWeight, // CVB standard weight per group
+        avgMilkYieldKg: avg(melkVals) ? Math.round(avg(melkVals)! * 10) / 10 : 0,
+        avgFatPercent: avg(vetVals) ? Math.round(avg(vetVals)! * 100) / 100 : 0,
+        avgProteinPercent: avg(eiwVals) ? Math.round(avg(eiwVals)! * 100) / 100 : 0,
+        avgDaysInMilk: avg(dimVals) ? Math.round(avg(dimVals)!) : 0,
+        avgCelgetal: avg(celVals) ? Math.round(avg(celVals)!) : null,
+        avgUreum: avg(ureumVals) ? Math.round(avg(ureumVals)!) : null,
+        avgParity: avg(lactVals) ? Math.round(avg(lactVals)! * 10) / 10 : null,
+        dimRange: dimVals.length > 0 ? { min: Math.min(...dimVals), max: Math.max(...dimVals) } : null,
+        highCelCount: celVals.filter(v => v > 250).length,
+        versCowCount: groupCows.filter(c => c.status === 'vers').length,
+        // Include individual cow diernrs for reference
+        cowDiernrs: groupCows.map(c => c.diernr),
+      };
+    }
+
+    const groups = [
+      buildGroupStats('Droogstaand', dryCows.map(c => ({ ...c, dim: null })), 'dry', 725),
+      buildGroupStats('Hoogproductief (Vers)', hoogCows, 'lactating', 650),
+      buildGroupStats('Midproductief', middenCows, 'lactating', 675),
+      buildGroupStats('Laagproductief (Laat)', laagCows, 'lactating', 700),
+    ];
+
+    // Add unassigned cows (no kalfdatum) info
+    const unassigned = noDimCows.length;
+
+    return {
+      mprDate: targetDate,
+      totalCows: cows.length,
+      activeCows: activeCows.length,
+      dryCows: dryCows.length,
+      unassignedCows: unassigned,
+      groups,
+    };
+  } catch (error) {
+    console.error("[Database] Failed to compute herd groups:", error);
+    return { groups: [], mprDate: null, totalCows: 0 };
+  }
+}

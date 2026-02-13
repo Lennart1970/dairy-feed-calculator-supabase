@@ -18,7 +18,8 @@ import {
   // MPR Deliveries
   getMprDeliveries, getMprDeliveriesByDateRange, getMprMonthlySummary,
   // MPR Cow Records (Dieroverzicht)
-  getMprSessions, getMprCowRecords, getMprCowHistory, getMprHerdSummary
+  getMprSessions, getMprCowRecords, getMprCowHistory, getMprHerdSummary,
+  getComputedHerdGroups
 } from "./db";
 import { parseLabReportPdf } from "./pdfParser";
 import { z } from "zod";
@@ -899,6 +900,15 @@ export const appRouter = router({
       .input(z.object({ farmId: z.number().default(1) }))
       .query(async ({ input }) => {
         return await getMprHerdSummary(input.farmId);
+      }),
+
+    computedGroups: publicProcedure
+      .input(z.object({
+        farmId: z.number().default(1),
+        mprDate: z.string().optional(),
+      }))
+      .query(async ({ input }) => {
+        return await getComputedHerdGroups(input.farmId, input.mprDate);
       }),
   }),
 });
